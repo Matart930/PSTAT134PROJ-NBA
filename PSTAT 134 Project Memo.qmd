@@ -1,0 +1,25 @@
+---
+title: "PSTAT 134 Project Memo"
+format: html
+editor: visual
+---
+
+## Project Memo (Group 28)
+
+Members: Matthew Arteaga, Davian Valencia, Erika Nares, Yabel Negassi, Brett Lang
+
+## Dataset Overview
+
+The data we will be working with includes player, team, game, and league level data from the NBA. We will be obtaining our data from [stats.nba.com](stats.nba.com) through the use of nba_api, an API Client created to make the APIs of the site easily accessible and provide extensive documentation about them (<https://github.com/swar/nba_api>). We don't yet have a set number of observations, as we do not know what combination of levels of data we will be working with (player, team, game, etc.), or how many years of data we will require to carry out our analysis. We also do not know yet how many predictors, as the NBA provides an extensive number of statistics at the various levels of data. However, we are looking to include features such as: Team Net Rating, Offensive/Defensive Rating (per 100 possessions), point differential, Head-to-Head Ratings, and more. For the most part we will be using quantitative data that reveals information about the performance of certain teams and players. There is not a lot of missing data, which is nice, but we still need to dig deeper into the data to see problems we might run into.
+
+## Research Questions Overview
+
+We are interested in predicting how teams or players will perform in the playoffs based on information we find about them during the regular season. We want to answer how we think teams/players will perform and why. Our response variables would be the performance of teams/players in the playoffs. Some predictors that we think might be most useful for teams would be win% and point differential, and for individual players we think that points per game and shooting percentage will be most useful. The goal of our model is predictive and inferential since we are going to try and predict the performance of teams/players in the NBA playoffs.
+
+## Proposed Project Timeline
+
+We want to have our datasets loaded and begin EDA within the next two weeks, in order to get ahead and begin learning how we can use the data best.
+
+## Questions/Concerns
+
+There is a lot of data to sort through to see what will be most well suited for our question. At this time we have no specific questions for Dr. Coburn or the instructional staff as of now.
