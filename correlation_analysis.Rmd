@@ -1,0 +1,87 @@
+---
+title: "correlation analysis"
+author: "Erika Nares"
+date: "2026-05-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{python}
+from nba_api.stats.endpoints import leaguedashteamstats
+import pandas as pd
+import time
+
+def get_season_data(season_year):
+    
+    reg = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season"
+    )
+    df_reg = reg.get_data_frames()[0]
+    df_reg = df_reg.rename(columns = {"W_PCT": "W_PCT_REG"})
+    
+    time.sleep(1)
+    
+    reg_last20 = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season",
+        last_n_games = "20"
+    )
+    df_reg_last20 = reg_last20.get_data_frames()[0]
+    df_reg_last20 = df_reg_last20.rename(columns = {"W_PCT": "W_PCT_REG_LAST_20"})
+    
+    time.sleep(1)
+    
+    po = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Playoffs"
+    )
+    df_po = po.get_data_frames()[0]
+    df_po = df_po.rename(columns = {"W_PCT": "W_PCT_PO"})
+    
+    df = pd.merge(df_reg, df_reg_last20, on = "TEAM_ID")
+    df = pd.merge(df, df_po, on = "TEAM_ID")
+    
+    df = df[["TEAM_ID", "TEAM_NAME_x", "W_PCT_REG", "W_PCT_REG_LAST_20", "W_PCT_PO"]]
+    df = df.rename(columns = {"TEAM_NAME_x": "TEAM_NAME"})
+    
+    return df
+```
+
+```{python}
+years = ["2015-16","2016-17","2017-18","2018-19","2019-20",
+  "2020-21","2021-22","2022-23","2023-24","2024-25"]
+
+all_season_data = []
+
+for year in years:
+    season_df = get_season_data(year)
+    season_df["season"] = year
+    all_season_data.append(season_df)
+    time.sleep(2)
+
+combined_df = pd.concat(all_season_data, ignore_index = True)
+```
+
+```{r}
+combined_df <- py$combined_df
+combined_df
+```
+```{r}
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    reg_cor = cor(W_PCT_REG, W_PCT_PO),
+    last20_cor = cor(W_PCT_REG_LAST_20, W_PCT_PO)
+  )
+
+cors
+```
+```{r}
+mean(cors$reg_cor)
+mean(cors$last20_cor)
+```
+
