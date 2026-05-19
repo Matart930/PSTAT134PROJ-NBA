@@ -1,0 +1,266 @@
+---
+title: "Correlation Analysis: TS% and eFG%"
+author: "Matthew Arteaga"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    df-print: paged
+
+editor: visual
+---
+
+## Settings
+
+```{r, warning=FALSE}
+library(reticulate)
+use_virtualenv("./.venv", required = TRUE)
+```
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+plt.style.use("ggplot")
+from scipy.stats import pearsonr
+from nba_api.stats.endpoints import LeagueDashTeamStats
+from nba_api.stats.endpoints import LeagueGameLog
+import time
+
+
+# LAST 10 COMPLETED SEASONS
+
+SEASONS = [
+    "2014-15",
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24"
+]
+
+# FUNCTION: REGULAR SEASON DATA
+
+def get_regular_season_stats(season):
+
+    # Pulls team-level regular season TS% and EFG%
+    
+
+    stats = LeagueDashTeamStats(
+        season=season,
+        season_type_all_star="Regular Season",
+        measure_type_detailed_defense="Advanced"
+    )
+
+    df = stats.get_data_frames()[0]
+
+    print(df.columns)  # optional debugging
+
+    keep_cols = [
+        "TEAM_NAME",
+        "TS_PCT",
+        "EFG_PCT"
+    ]
+
+    df = df[keep_cols].copy()
+
+    df.rename(columns={
+        "TS_PCT": "REG_TS_PCT",
+        "EFG_PCT": "REG_EFG_PCT"
+    }, inplace=True)
+
+    df["SEASON"] = season
+
+    return df
+  
+# FUNCTION: PLAYOFF WIN%
+
+def get_playoff_win_pct(season):
+    
+    # Computes playoff win percentage by team
+    # from playoff game logs
+    
+
+    logs = LeagueGameLog(
+        season=season,
+        season_type_all_star="Playoffs",
+        player_or_team_abbreviation="T"
+    )
+
+    df = logs.get_data_frames()[0]
+
+    # Keep needed columns
+    df = df[["TEAM_NAME", "WL"]].copy()
+
+    # Convert wins/losses to numeric
+    df["WIN"] = df["WL"].apply(lambda x: 1 if x == "W" else 0)
+
+    # Aggregate
+    summary = (
+        df.groupby("TEAM_NAME")
+        .agg(
+            PLAYOFF_GAMES=("WIN", "count"),
+            PLAYOFF_WINS=("WIN", "sum")
+        )
+        .reset_index()
+    )
+
+    summary["PLAYOFF_WIN_PCT"] = (
+        summary["PLAYOFF_WINS"] /
+        summary["PLAYOFF_GAMES"]
+    )
+
+    summary["SEASON"] = season
+
+    return summary
+```
+
+## Collecting Data
+
+```{python}
+#| eval: false
+
+all_data = []
+
+for season in SEASONS:
+
+    print(f"Pulling data for {season}...")
+
+    try:
+        reg_df = get_regular_season_stats(season)
+
+        # Small delay to avoid rate limiting
+        time.sleep(1)
+
+        playoff_df = get_playoff_win_pct(season)
+
+        merged = pd.merge(
+            reg_df,
+            playoff_df,
+            on=["TEAM_NAME", "SEASON"],
+            how="inner"
+        )
+
+        all_data.append(merged)
+
+        time.sleep(1)
+
+    except Exception as e:
+        print(f"Error on {season}: {e}")
+
+# Combine all seasons
+final_df = pd.concat(all_data, ignore_index=True)
+
+# --------------------------------------------
+# SAVE DATA
+# --------------------------------------------
+
+final_df.to_csv("nba_ts_efg_playoff_winpct.csv", index=False)
+
+print("\nSaved dataset:")
+print(final_df.head())
+```
+
+## Correlation Analysis
+
+```{python}
+final_df = pd.read_csv("nba_ts_efg_playoff_winpct.csv")
+
+```
+
+```{python}
+#| echo: false
+# TS% correlation
+ts_corr, ts_p = pearsonr(
+    final_df["REG_TS_PCT"],
+    final_df["PLAYOFF_WIN_PCT"]
+)
+
+# EFG% correlation
+efg_corr, efg_p = pearsonr(
+    final_df["REG_EFG_PCT"],
+    final_df["PLAYOFF_WIN_PCT"]
+)
+
+print("\n==============================")
+print("CORRELATION RESULTS")
+print("==============================")
+
+print(f"TS% vs Playoff Win%")
+print(f"Pearson Correlation: {ts_corr:.4f}")
+print(f"P-value: {ts_p:.6f}\n")
+
+print(f"EFG% vs Playoff Win%")
+print(f"Pearson Correlation: {efg_corr:.4f}")
+print(f"P-value: {efg_p:.6f}")
+
+# --------------------------------------------
+# VISUALIZATIONS
+# --------------------------------------------
+
+# TS% Scatter
+plt.figure(figsize=(8, 6))
+plt.scatter(
+    final_df["REG_TS_PCT"],
+    final_df["PLAYOFF_WIN_PCT"]
+)
+
+plt.xlabel("Regular Season TS%")
+plt.ylabel("Playoff Win%")
+plt.title("Regular Season TS% vs Playoff Win%")
+plt.grid(True)
+plt.show()
+
+# EFG% Scatter
+plt.figure(figsize=(8, 6))
+plt.scatter(
+    final_df["REG_EFG_PCT"],
+    final_df["PLAYOFF_WIN_PCT"]
+)
+
+plt.xlabel("Regular Season EFG%")
+plt.ylabel("Playoff Win%")
+plt.title("Regular Season EFG% vs Playoff Win%")
+plt.grid(True)
+plt.show()
+
+# --------------------------------------------
+# OPTIONAL:
+# VIEW TOP CORRELATED TEAMS
+# --------------------------------------------
+
+print("\nTop playoff teams by TS%:")
+print(
+    final_df.sort_values(
+        by="REG_TS_PCT",
+        ascending=False
+    )[
+        [
+            "SEASON",
+            "TEAM_NAME",
+            "REG_TS_PCT",
+            "PLAYOFF_WIN_PCT"
+        ]
+    ].head(10)
+)
+
+print("\nTop playoff teams by EFG%:")
+print(
+    final_df.sort_values(
+        by="REG_EFG_PCT",
+        ascending=False
+    )[
+        [
+            "SEASON",
+            "TEAM_NAME",
+            "REG_EFG_PCT",
+            "PLAYOFF_WIN_PCT"
+        ]
+    ].head(10)
+)
+```
+
