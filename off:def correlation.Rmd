@@ -1,0 +1,115 @@
+---
+title: "correlation with offensive/defensive rating"
+author: "Erika Nares"
+date: "2026-05-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(httr)
+library(jsonlite)
+library(tidyverse)
+library(reticulate)
+library(ggplot2)
+```
+
+```{r}
+py_install(c("pandas", "numpy", "scikit-learn","matplotlib", "seaborn", "jupyter", "fastapi", "flask"))
+```
+
+```{r}
+reticulate::py_install("requests")
+```
+
+```{r}
+library(reticulate)
+
+py_install("nba_api")
+```
+
+```{python}
+from nba_api.stats.endpoints import leaguedashteamstats
+import pandas as pd
+import time
+
+def get_season_data(season_year):
+    
+    reg = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season",
+        measure_type_detailed_defense = "Advanced"
+    )
+    df_reg = reg.get_data_frames()[0]
+    
+    df_reg = df_reg.rename(columns = {
+        "OFF_RATING": "OFF_RATING_REG",
+        "DEF_RATING": "DEF_RATING_REG"
+    })
+    
+    time.sleep(1)
+    
+    po = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Playoffs",
+        measure_type_detailed_defense = "Advanced"
+    )
+    df_po = po.get_data_frames()[0]
+    
+    df_po = df_po.rename(columns = {
+        "W_PCT": "W_PCT_PO"
+    })
+    
+    df = pd.merge(df_reg, df_po, on = "TEAM_ID")
+    
+    df = df[[
+        "TEAM_ID",
+        "TEAM_NAME_x",
+        "OFF_RATING_REG",
+        "DEF_RATING_REG",
+        "W_PCT_PO"
+    ]]
+    
+    df = df.rename(columns = {"TEAM_NAME_x": "TEAM_NAME"})
+    
+    return df
+```
+
+```{python}
+years = ["2015-16","2016-17","2017-18","2018-19","2019-20",
+         "2020-21","2021-22","2022-23","2023-24","2024-25"]
+
+all_season_data = []
+
+for year in years:
+    season_df = get_season_data(year)
+    season_df["season"] = year
+    all_season_data.append(season_df)
+    time.sleep(2)
+
+combined_df = pd.concat(all_season_data, ignore_index = True)
+```
+
+```{r}
+combined_df <- py$combined_df
+combined_df
+```
+```{r}
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    off_rating_cor = cor(OFF_RATING_REG, W_PCT_PO),
+    def_rating_cor = cor(DEF_RATING_REG, W_PCT_PO)
+  )
+
+cors
+```
+
+```{r}
+mean(cors$off_rating_cor)
+mean(cors$def_rating_cor)
+```
+
