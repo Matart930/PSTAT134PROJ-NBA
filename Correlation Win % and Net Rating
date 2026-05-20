@@ -1,0 +1,86 @@
+---
+title: "Correlation Analysis Win pct/ net rating"
+author: "Yabel Negassi"
+date: "2026-05-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+```{python}
+from nba_api.stats.endpoints import leaguedashteamstats
+import pandas as pd
+import time
+
+years = ["2015-16","2016-17","2017-18","2018-19","2019-20",
+         "2020-21","2021-22","2022-23","2023-24","2024-25"]
+
+all_season_data = []
+
+for year in years:
+    
+    reg = leaguedashteamstats.LeagueDashTeamStats(
+        season = year,
+        season_type_all_star = "Regular Season",
+        measure_type_detailed_defense = "Advanced"
+    )
+    
+    df_reg = reg.get_data_frames()[0]
+    
+    df_reg = df_reg[["TEAM_ID","TEAM_NAME","W_PCT","NET_RATING"]]
+    
+    df_reg = df_reg.rename(columns = {
+        "W_PCT":"W_PCT_REG",
+        "NET_RATING":"NET_RATING_REG"
+    })
+    
+    time.sleep(1)
+    
+    po = leaguedashteamstats.LeagueDashTeamStats(
+        season = year,
+        season_type_all_star = "Playoffs"
+    )
+    
+    df_po = po.get_data_frames()[0]
+    
+    df_po = df_po[["TEAM_ID","W_PCT"]]
+    
+    df_po = df_po.rename(columns = {
+        "W_PCT":"W_PCT_PO"
+    })
+    
+    df = pd.merge(df_reg, df_po, on = "TEAM_ID")
+    
+    df["season"] = year
+    
+    all_season_data.append(df)
+    
+    time.sleep(2)
+
+combined_df = pd.concat(all_season_data, ignore_index = True)
+```
+
+```{r}
+combined_df <- py$combined_df
+
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    cor_win_pct = cor(W_PCT_REG, W_PCT_PO),
+    cor_net_rating = cor(NET_RATING_REG, W_PCT_PO)
+  )
+
+combined_df
+
+cors
+
+mean(cors$cor_win_pct)
+
+mean(cors$cor_net_rating)
+```
