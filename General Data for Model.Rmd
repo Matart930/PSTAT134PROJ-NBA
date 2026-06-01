@@ -1,0 +1,390 @@
+---
+title: "General Data for Model"
+author: "Erika Nares"
+date: "2026-05-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(reticulate)
+```
+
+1. Getting game log data 
+```{python}
+from nba_api.stats.endpoints import leaguegamelog
+
+def get_game_logs(season_year):
+
+    logs = leaguegamelog.LeagueGameLog(
+        season = season_year,
+        season_type_all_star = "Regular Season",
+        player_or_team_abbreviation = "T",
+        timeout = 60
+    )
+
+    df_logs = logs.get_data_frames()[0]
+
+    return df_logs
+```
+
+2. Getting team data 
+```{python}
+from nba_api.stats.endpoints import leaguedashteamstats
+
+def get_teams(season_year):
+
+    teams = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season"
+    )
+
+    df_teams = teams.get_data_frames()[0]
+
+    return df_teams
+```
+
+
+3. Retreive SOS (Strength of Schedule) to calculate SRS (Simple Rating System = Average Point Differential + SOS)
+```{r}
+library(dplyr)
+library(stringr)
+
+get_sos <- function(season_year){
+  
+  df_logs <- py$get_game_logs(season_year)
+  df_teams <- py$get_teams(season_year)
+  
+  # Make lookup table to find the full name from abbreviations
+  abbrev_lookup <- df_logs %>%
+    select(TEAM_ABBREVIATION, TEAM_NAME) %>%
+    distinct() %>%
+    rename(
+      OPP_ABBREVIATION = TEAM_ABBREVIATION,
+      OPP_TEAM_NAME = TEAM_NAME
+    )
+  
+  # Get opponent abbreviation from matchup in df_logs 
+  df_logs <- df_logs %>%
+    select(
+      TEAM_NAME,
+      TEAM_ABBREVIATION,
+      MATCHUP
+    ) %>%
+    mutate(
+      OPP_ABBREVIATION = str_sub(MATCHUP, -3, -1)
+    ) %>%
+    left_join(
+      abbrev_lookup,
+      by = "OPP_ABBREVIATION"
+    )
+  
+  # Get opponent win percentage table from df_teams
+  opponent_win_pct <- df_teams %>%
+    select(
+      TEAM_NAME,
+      W_PCT
+    ) %>%
+    rename(
+      OPP_TEAM_NAME = TEAM_NAME,
+      OPP_W_PCT = W_PCT
+    )
+  
+  # Join opponent win percentage using opponent team name
+  df_logs <- df_logs %>%
+    left_join(
+      opponent_win_pct,
+      by = "OPP_TEAM_NAME"
+    )
+  
+  # Average opponent win percentage for each team
+  sos <- df_logs %>%
+    group_by(
+      TEAM_NAME
+    ) %>%
+    summarize(
+      SOS_REG = mean(OPP_W_PCT, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  return(sos)
+}
+
+get_sos("2015-16")
+```
+
+4. This calculates how each team performed against each opponent in the regular season. 
+```{r}
+get_head_to_head_data <- function(season_year){
+  
+  df_logs <- py$get_game_logs(season_year)
+  
+  head_to_head <- df_logs %>%
+    select(
+      TEAM_NAME,
+      TEAM_ABBREVIATION,
+      MATCHUP,
+      WL,
+      PLUS_MINUS
+    ) %>%
+    mutate(
+      OPP_ABBREVIATION = str_sub(MATCHUP, -3, -1),
+      WIN = ifelse(WL == "W", 1, 0)
+    )
+  
+  # Make lookup table to find the full name from abbreviations
+  abbrev_lookup <- df_logs %>%
+    select(TEAM_ABBREVIATION, TEAM_NAME) %>%
+    distinct() %>%
+    rename(
+      OPP_ABBREVIATION = TEAM_ABBREVIATION,
+      OPP_TEAM_NAME = TEAM_NAME
+    )
+  
+  head_to_head <- head_to_head %>%
+    left_join(
+      abbrev_lookup,
+      by = "OPP_ABBREVIATION"
+    ) %>%
+    group_by(
+      TEAM_NAME,
+      OPP_TEAM_NAME
+    ) %>%
+    summarize(
+      HEAD_TO_HEAD_GAMES = n(),
+      HEAD_TO_HEAD_WINS = sum(WIN),
+      HEAD_TO_HEAD_WIN_PCT = mean(WIN),
+      HEAD_TO_HEAD_POINT_DIFF = mean(PLUS_MINUS),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      season = season_year
+    )
+  
+  return(head_to_head)
+}
+
+get_head_to_head_data("2015-16")
+```
+
+5. This creates the main team-level dataset for one season and merges them with the playoff win percentage. 
+```{python}
+import time
+import pandas as pd
+from nba_api.stats.endpoints import leaguedashteamstats
+
+def get_season_data(season_year):
+    
+    reg_adv = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season",
+        measure_type_detailed_defense = "Advanced"
+    )
+    
+    df_reg_adv = reg_adv.get_data_frames()[0]
+    
+    df_reg_adv = df_reg_adv[[
+        "TEAM_ID",
+        "TEAM_NAME",
+        "W_PCT",
+        "OFF_RATING",
+        "DEF_RATING",
+        "NET_RATING",
+        "TS_PCT",
+        "EFG_PCT",
+        "OREB_PCT",
+        "TM_TOV_PCT"
+    ]]
+    
+    df_reg_adv = df_reg_adv.rename(columns = {
+        "W_PCT": "W_PCT_REG",
+        "OFF_RATING": "OFF_RATING_REG",
+        "DEF_RATING": "DEF_RATING_REG",
+        "NET_RATING": "NET_RATING_REG",
+        "TS_PCT": "TS_PCT_REG",
+        "EFG_PCT": "EFG_PCT_REG",
+        "OREB_PCT": "OREB_PCT_REG",
+        "TM_TOV_PCT": "TOV_PCT_REG"
+    })
+    
+    df_reg_adv["PLUS_MINUS_REG"] = (
+        df_reg_adv["OFF_RATING_REG"] - df_reg_adv["DEF_RATING_REG"]
+    )
+    
+    time.sleep(1)
+    
+    reg_traditional = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Regular Season"
+    )
+    
+    df_reg_traditional = reg_traditional.get_data_frames()[0]
+    
+    df_reg_traditional["THREE_PT_ATTEMPT_RATE_REG"] = (
+        df_reg_traditional["FG3A"] / df_reg_traditional["FGA"]
+    )
+    
+    df_reg_traditional = df_reg_traditional[[
+        "TEAM_ID",
+        "THREE_PT_ATTEMPT_RATE_REG"
+    ]]
+    
+    time.sleep(1)
+    
+    po_traditional = leaguedashteamstats.LeagueDashTeamStats(
+        season = season_year,
+        season_type_all_star = "Playoffs"
+    )
+    
+    df_po_traditional = po_traditional.get_data_frames()[0]
+    
+    df_po_traditional = df_po_traditional[[
+        "TEAM_ID",
+        "W_PCT"
+    ]]
+    
+    df_po_traditional = df_po_traditional.rename(columns = {
+        "W_PCT": "W_PCT_PO"
+    })
+    
+    df = pd.merge(df_reg_adv, df_reg_traditional, on = "TEAM_ID")
+    df = pd.merge(df, df_po_traditional, on = "TEAM_ID")
+    
+    df["season"] = season_year
+    
+    return df
+get_season_data("2015-16")
+```
+6. Applies get_season_data to past 10 seasons.
+```{python}
+years = [
+    "2015-16", "2016-17", "2017-18", "2018-19", "2019-20",
+    "2020-21", "2021-22", "2022-23", "2023-24", "2024-25"
+]
+
+all_season_data = []
+
+for year in years:
+      season_df = get_season_data(year)
+      all_season_data.append(season_df)
+
+combined_df = pd.concat(all_season_data, ignore_index = True)
+
+```
+```{r}
+py$combined_df
+```
+
+7. Joins SOS data and creates SRS_REG to join with the main df. 
+```{r}
+combined_df <- py$combined_df
+
+years <- c(
+  "2015-16", "2016-17", "2017-18", "2018-19", "2019-20",
+  "2020-21", "2021-22", "2022-23", "2023-24", "2024-25"
+)
+
+all_sos <- map_dfr(years, function(year) {
+  Sys.sleep(5)
+  get_sos(year) %>%
+    mutate(season = year)
+})
+
+combined_df <- combined_df %>%
+  left_join(
+    all_sos,
+    by = c("TEAM_NAME", "season")
+  ) %>%
+  mutate(
+    SRS_REG = PLUS_MINUS_REG + SOS_REG
+  )
+
+combined_df
+```
+
+
+8. Correlation per season with postseason win percentage
+```{r}
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    win_pct_cor = cor(W_PCT_REG, W_PCT_PO),
+    net_rating_cor = cor(NET_RATING_REG, W_PCT_PO),
+    plus_minus_cor = cor(PLUS_MINUS_REG, W_PCT_PO),
+    off_rating_cor = cor(OFF_RATING_REG, W_PCT_PO),
+    def_rating_cor = cor(DEF_RATING_REG, W_PCT_PO),
+    ts_pct_cor = cor(TS_PCT_REG, W_PCT_PO),
+    efg_pct_cor = cor(EFG_PCT_REG, W_PCT_PO),
+    three_pt_attempt_rate_cor = cor(THREE_PT_ATTEMPT_RATE_REG, W_PCT_PO),
+    tov_pct_cor = cor(TOV_PCT_REG, W_PCT_PO),
+    oreb_pct_cor = cor(OREB_PCT_REG, W_PCT_PO),
+    sos_cor = cor(SOS_REG, W_PCT_PO),
+    srs_cor = cor(SRS_REG, W_PCT_PO),
+    .groups = "drop"
+  )
+
+cors
+```
+9. Average correalation over past ten seasons
+```{r}
+avg_cors <- cors %>%
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+avg_cors
+```
+10. Correlations of variables with each other through matrix and colored matrix
+```{r}
+predictors <- combined_df %>%
+  select(
+    W_PCT_REG,
+    NET_RATING_REG,
+    PLUS_MINUS_REG,
+    OFF_RATING_REG,
+    DEF_RATING_REG,
+    TS_PCT_REG,
+    EFG_PCT_REG,
+    THREE_PT_ATTEMPT_RATE_REG,
+    TOV_PCT_REG,
+    OREB_PCT_REG,
+    SOS_REG,
+    SRS_REG
+  )
+
+round(cor(predictors, use = "complete.obs"), 2)
+```
+```{r}
+library(corrplot)
+
+corrplot(
+  cor(predictors, use = "complete.obs"),
+  method = "color",
+  type = "lower",
+  addCoef.col = "black",
+  number.cex = 0.4,
+  tl.cex = 0.4
+)
+```
+Based on the correlation with win percentage and  
+1. NET_RATING_REG
+2. TS_PCT_REG
+3. THREE_PT_ATTEMPT_RATE_REG
+
+## TO DO: 
+
+1. Add more visuals
+2. See how the difference in these variables correlates with the winner of each series
+
+## NEXT DOCS
+
+1) Data for matchups only
+ 1. how each team performed during regular season against team they are playing against and see how that correlates with the winner of the series
+ 2. Will want to add EDA visuals 
+ 
+2) Modelling
+ 1. Choose 1 or 2 types of models (maybe Logistic Regression and RF), finalize our predictors (our target variable will be whether team A or team B wins)
+ 2. We can probably refer to PSTAT 131 Workflow and just copy that 
+
