@@ -1,0 +1,350 @@
+---
+title: "H2h Matchup Difference Analysis"
+author: "Erika Nares"
+date: "2026-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(reticulate)
+library(tidyverse)
+```
+
+```{python}
+from nba_api.stats.endpoints import leaguegamelog
+
+def get_game_logs(season_year):
+
+    logs = leaguegamelog.LeagueGameLog(
+        season = season_year,
+        season_type_all_star = "Regular Season",
+        player_or_team_abbreviation = "T",
+        timeout = 60
+    )
+
+    df_logs = logs.get_data_frames()[0]
+
+    return df_logs
+```
+
+```{r}
+get_regular_season_matchup_stats <- function(season_year){
+  
+  df_logs <- py$get_game_logs(season_year)
+  
+  abbrev_lookup <- df_logs %>%
+    select(TEAM_ABBREVIATION, TEAM_NAME) %>%
+    distinct() %>%
+    rename(
+      OPP_ABBREVIATION = TEAM_ABBREVIATION,
+      OPP_TEAM_NAME = TEAM_NAME
+    )
+  
+  matchup_stats <- df_logs %>%
+    select(
+      TEAM_NAME,
+      TEAM_ABBREVIATION,
+      MATCHUP,
+      WL,
+      PTS,
+      PLUS_MINUS,
+      FGM,
+      FGA,
+      FG3M,
+      FG3A,
+      FTM,
+      FTA,
+      OREB,
+      DREB,
+      REB,
+      AST,
+      STL,
+      BLK,
+      TOV
+    ) %>%
+    mutate(
+      OPP_ABBREVIATION = str_sub(MATCHUP, -3, -1),
+      WIN = ifelse(WL == "W", 1, 0),
+      TS_PCT_GAME = PTS / (2 * (FGA + 0.44 * FTA)),
+      EFG_PCT_GAME = (FGM + 0.5 * FG3M) / FGA,
+      THREE_PT_ATTEMPT_RATE_GAME = FG3A / FGA
+    ) %>%
+    left_join(
+      abbrev_lookup,
+      by = "OPP_ABBREVIATION"
+    ) %>%
+    group_by(
+      TEAM_NAME,
+      OPP_TEAM_NAME
+    ) %>%
+    summarize(
+      H2H_GAMES = n(),
+      H2H_WINS = sum(WIN),
+      H2H_WIN_PCT = mean(WIN),
+      H2H_POINT_DIFF = mean(PLUS_MINUS),
+      H2H_PTS = mean(PTS),
+      H2H_TS_PCT = mean(TS_PCT_GAME, na.rm = TRUE),
+      H2H_EFG_PCT = mean(EFG_PCT_GAME, na.rm = TRUE),
+      H2H_THREE_PT_RATE = mean(THREE_PT_ATTEMPT_RATE_GAME, na.rm = TRUE),
+      H2H_REB = mean(REB),
+      H2H_AST = mean(AST),
+      H2H_TOV = mean(TOV),
+      .groups = "drop"
+    ) %>%
+    mutate(season = season_year)
+  
+  return(matchup_stats)
+}
+head(get_regular_season_matchup_stats("2015-16"))
+```
+
+```{r}
+years <- c(
+  "2015-16", "2016-17", "2017-18", "2018-19", "2019-20",
+  "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26")
+  
+h2h_stats <- map_dfr(years, function(year) {
+  Sys.sleep(5)
+  get_regular_season_matchup_stats(year)
+})
+
+head(h2h_stats)
+```
+```{r}
+all_series <- read.csv("all_series.csv")
+```
+
+```{r}
+series_h2h_df <- all_series %>%
+  left_join(
+    h2h_stats,
+    by = c(
+      "season" = "season",
+      "TEAM_A" = "TEAM_NAME",
+      "TEAM_B" = "OPP_TEAM_NAME"
+    )
+  ) %>%
+  left_join(
+    h2h_stats,
+    by = c(
+      "season" = "season",
+      "TEAM_B" = "TEAM_NAME",
+      "TEAM_A" = "OPP_TEAM_NAME"
+    ),
+    suffix = c("_A", "_B")
+  )
+```
+```{r}
+head(series_h2h_df)
+```
+```{r}
+series_h2h_df <- series_h2h_df %>%
+  mutate(
+    H2H_WIN_PCT_DIFF =
+      H2H_WIN_PCT_A - H2H_WIN_PCT_B,
+
+    H2H_POINT_DIFF_DIFF =
+      H2H_POINT_DIFF_A - H2H_POINT_DIFF_B,
+
+    H2H_PTS_DIFF =
+      H2H_PTS_A - H2H_PTS_B,
+
+    H2H_TS_PCT_DIFF =
+      H2H_TS_PCT_A - H2H_TS_PCT_B,
+
+    H2H_EFG_PCT_DIFF =
+      H2H_EFG_PCT_A - H2H_EFG_PCT_B,
+
+    H2H_THREE_PT_RATE_DIFF =
+      H2H_THREE_PT_RATE_A - H2H_THREE_PT_RATE_B,
+
+    H2H_REB_DIFF =
+      H2H_REB_A - H2H_REB_B,
+
+    H2H_AST_DIFF =
+      H2H_AST_A - H2H_AST_B,
+
+    H2H_TOV_DIFF =
+      H2H_TOV_A - H2H_TOV_B
+  )
+```
+
+```{r}
+series_h2h_df <- series_h2h_df %>%
+  select(
+    SERIES_ID,
+    season,
+    TEAM_A,
+    TEAM_B,
+    WINNER,
+
+    H2H_GAMES_A,
+    H2H_GAMES_B,
+
+    H2H_WIN_PCT_DIFF,
+    H2H_POINT_DIFF_DIFF,
+    H2H_PTS_DIFF,
+    H2H_TS_PCT_DIFF,
+    H2H_EFG_PCT_DIFF,
+    H2H_THREE_PT_RATE_DIFF,
+    H2H_REB_DIFF,
+    H2H_AST_DIFF,
+    H2H_TOV_DIFF
+  )
+
+head(series_h2h_df)
+```
+
+```{r}
+h2h_correlations <- tibble(
+
+  Variable = c(
+    "H2H_WIN_PCT_DIFF",
+    "H2H_POINT_DIFF_DIFF",
+    "H2H_PTS_DIFF",
+    "H2H_TS_PCT_DIFF",
+    "H2H_EFG_PCT_DIFF",
+    "H2H_THREE_PT_RATE_DIFF",
+    "H2H_REB_DIFF",
+    "H2H_AST_DIFF",
+    "H2H_TOV_DIFF"
+  ),
+
+  Correlation = c(
+    cor(series_h2h_df$H2H_WIN_PCT_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_POINT_DIFF_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_PTS_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_TS_PCT_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_EFG_PCT_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_THREE_PT_RATE_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_REB_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_AST_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs"),
+
+    cor(series_h2h_df$H2H_TOV_DIFF,
+        series_h2h_df$WINNER,
+        use = "complete.obs")
+  )
+)
+
+h2h_correlations %>%
+  arrange(desc(abs(Correlation)))
+```
+```{r}
+series_df <- read.csv("series_df.csv")
+```
+
+```{r}
+final_series_df <- series_df %>%
+  left_join(
+    series_h2h_df %>%
+      select(
+        SERIES_ID,
+        season,
+        H2H_WIN_PCT_DIFF,
+        H2H_TS_PCT_DIFF,
+        H2H_EFG_PCT_DIFF,
+        H2H_POINT_DIFF_DIFF
+      ),
+    by = c("SERIES_ID", "season")
+  )
+```
+```{r}
+head(final_series_df)
+```
+
+```{r}
+predictor_df <- final_series_df %>% filter(season != "2025-26") %>%
+  select(
+    WIN_PCT_DIFF,
+    TS_DIFF,
+    EFG_DIFF,
+    NET_RATING_DIFF,
+    OFF_RATING_DIFF,
+    
+    H2H_WIN_PCT_DIFF,
+    H2H_TS_PCT_DIFF,
+    H2H_EFG_PCT_DIFF,
+    H2H_POINT_DIFF_DIFF
+  )
+
+round(
+  cor(predictor_df, use = "complete.obs"),
+  2
+)
+```
+```{r}
+predictors <- final_series_df %>% filter(season != "2025-26") %>%
+  select(
+    WIN_PCT_DIFF,
+    TS_DIFF,
+    THREE_PT_DIFF,
+    OFF_RATING_DIFF,
+    H2H_TS_PCT_DIFF,
+    
+    H2H_WIN_PCT_DIFF
+  )
+```
+
+```{r}
+library(corrplot)
+
+corrplot(
+  cor(predictors, use = "complete.obs"),
+  method = "color",
+  type = "lower",
+  addCoef.col = "black",
+  number.cex = 0.5,
+  tl.cex = 0.6
+)
+```
+```{r}
+## Might not be necessary 
+library(usdm)
+
+vif(predictors)
+```
+
+```{r}
+## Probably not a good predictor 
+series_df <- series_df %>% filter(season != "2025-26") %>%
+  mutate(
+    HOME_COURT_WON =
+      ifelse(WINNER == 1, 1, 0)
+  )
+```
+```{r}
+mean(series_df$HOME_COURT_WON)
+```
+
+## we can do logistic regression with elastic net which will address multicollinearity in the data, we can safely do it if we are doing it for prediction 
+
+```{r}
+write.csv(final_series_df, "final_series_df.csv", row.names = FALSE)
+```
+
