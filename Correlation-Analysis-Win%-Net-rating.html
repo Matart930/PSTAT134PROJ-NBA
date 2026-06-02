@@ -373,223 +373,214 @@ rating</h1>
 import pandas as pd
 import time
 
+def get_season_data(season_year):
+    
+    # Advanced stats (for TS%)
+    reg = leaguedashteamstats.LeagueDashTeamStats(
+        season=season_year,
+        season_type_all_star=&quot;Regular Season&quot;,
+        measure_type_detailed_defense=&quot;Advanced&quot;
+    )
+    df_reg = reg.get_data_frames()[0]
+    df_reg = df_reg[[&quot;TEAM_ID&quot;, &quot;TEAM_NAME&quot;, &quot;NET_RATING&quot;, &quot;W_PCT&quot;]]
+    
+    time.sleep(1)
+    
+    # Playoff win %
+    po = leaguedashteamstats.LeagueDashTeamStats(
+        season=season_year,
+        season_type_all_star=&quot;Playoffs&quot;
+    )
+    df_po = po.get_data_frames()[0]
+    df_po = df_po[[&quot;TEAM_ID&quot;, &quot;W_PCT&quot;]].rename(columns={&quot;W_PCT&quot;: &quot;W_PCT_PO&quot;})
+    
+    df = pd.merge(df_reg, df_po, on=&quot;TEAM_ID&quot;)
+    
+    return df
+
 years = [&quot;2015-16&quot;,&quot;2016-17&quot;,&quot;2017-18&quot;,&quot;2018-19&quot;,&quot;2019-20&quot;,
          &quot;2020-21&quot;,&quot;2021-22&quot;,&quot;2022-23&quot;,&quot;2023-24&quot;,&quot;2024-25&quot;]
 
 all_season_data = []
 
 for year in years:
-    
-    reg = leaguedashteamstats.LeagueDashTeamStats(
-        season = year,
-        season_type_all_star = &quot;Regular Season&quot;,
-        measure_type_detailed_defense = &quot;Advanced&quot;
-    )
-    
-    df_reg = reg.get_data_frames()[0]
-    
-    df_reg = df_reg[[&quot;TEAM_ID&quot;,&quot;TEAM_NAME&quot;,&quot;W_PCT&quot;,&quot;NET_RATING&quot;]]
-    
-    df_reg = df_reg.rename(columns = {
-        &quot;W_PCT&quot;:&quot;W_PCT_REG&quot;,
-        &quot;NET_RATING&quot;:&quot;NET_RATING_REG&quot;
-    })
-    
-    time.sleep(1)
-    
-    po = leaguedashteamstats.LeagueDashTeamStats(
-        season = year,
-        season_type_all_star = &quot;Playoffs&quot;
-    )
-    
-    df_po = po.get_data_frames()[0]
-    
-    df_po = df_po[[&quot;TEAM_ID&quot;,&quot;W_PCT&quot;]]
-    
-    df_po = df_po.rename(columns = {
-        &quot;W_PCT&quot;:&quot;W_PCT_PO&quot;
-    })
-    
-    df = pd.merge(df_reg, df_po, on = &quot;TEAM_ID&quot;)
-    
-    df[&quot;season&quot;] = year
-    
-    all_season_data.append(df)
-    
+    season_df = get_season_data(year)
+    season_df[&quot;season&quot;] = year
+    all_season_data.append(season_df)
     time.sleep(2)
 
-combined_df = pd.concat(all_season_data, ignore_index = True)</code></pre>
+combined_df = pd.concat(all_season_data, ignore_index=True)</code></pre>
 <pre class="r"><code>combined_df &lt;- py$combined_df
 
 cors &lt;- combined_df %&gt;%
   group_by(season) %&gt;%
   summarize(
-    cor_win_pct = cor(W_PCT_REG, W_PCT_PO),
-    cor_net_rating = cor(NET_RATING_REG, W_PCT_PO)
+    cor_win_pct = cor(W_PCT, W_PCT_PO),
+    cor_net_rating = cor(NET_RATING, W_PCT_PO)
   )
 
 combined_df</code></pre>
-<pre><code>##        TEAM_ID              TEAM_NAME W_PCT_REG NET_RATING_REG W_PCT_PO  season
-## 1   1610612737          Atlanta Hawks     0.585            3.9    0.400 2015-16
-## 2   1610612738         Boston Celtics     0.585            3.3    0.333 2015-16
-## 3   1610612766      Charlotte Hornets     0.585            2.7    0.429 2015-16
-## 4   1610612739    Cleveland Cavaliers     0.695            6.3    0.762 2015-16
-## 5   1610612742       Dallas Mavericks     0.512           -0.4    0.200 2015-16
-## 6   1610612765        Detroit Pistons     0.537            0.3    0.000 2015-16
-## 7   1610612744  Golden State Warriors     0.890           10.6    0.625 2015-16
-## 8   1610612745        Houston Rockets     0.500            0.0    0.200 2015-16
-## 9   1610612754         Indiana Pacers     0.549            1.6    0.429 2015-16
-## 10  1610612746            LA Clippers     0.646            4.5    0.333 2015-16
-## 11  1610612763      Memphis Grizzlies     0.512           -2.4    0.000 2015-16
-## 12  1610612748             Miami Heat     0.585            1.7    0.500 2015-16
-## 13  1610612760  Oklahoma City Thunder     0.671            7.4    0.611 2015-16
-## 14  1610612757 Portland Trail Blazers     0.537            0.8    0.455 2015-16
-## 15  1610612759      San Antonio Spurs     0.817           11.1    0.600 2015-16
-## 16  1610612761        Toronto Raptors     0.683            4.4    0.500 2015-16
-## 17  1610612737          Atlanta Hawks     0.524           -0.7    0.333 2016-17
-## 18  1610612738         Boston Celtics     0.646            2.6    0.500 2016-17
-## 19  1610612741          Chicago Bulls     0.500            0.3    0.333 2016-17
-## 20  1610612739    Cleveland Cavaliers     0.622            3.1    0.722 2016-17
-## 21  1610612744  Golden State Warriors     0.817           11.4    0.941 2016-17
-## 22  1610612745        Houston Rockets     0.671            5.7    0.545 2016-17
-## 23  1610612754         Indiana Pacers     0.512           -0.2    0.000 2016-17
-## 24  1610612746            LA Clippers     0.622            4.4    0.429 2016-17
-## 25  1610612763      Memphis Grizzlies     0.524            0.5    0.333 2016-17
-## 26  1610612749        Milwaukee Bucks     0.512           -0.2    0.333 2016-17
-## 27  1610612760  Oklahoma City Thunder     0.573            0.8    0.200 2016-17
-## 28  1610612757 Portland Trail Blazers     0.500           -0.6    0.000 2016-17
-## 29  1610612759      San Antonio Spurs     0.744            7.4    0.500 2016-17
-## 30  1610612761        Toronto Raptors     0.622            4.3    0.400 2016-17
-## 31  1610612762              Utah Jazz     0.622            4.3    0.364 2016-17
-## 32  1610612764     Washington Wizards     0.598            1.7    0.538 2016-17
-## 33  1610612738         Boston Celtics     0.671            3.6    0.579 2017-18
-## 34  1610612739    Cleveland Cavaliers     0.610            1.0    0.545 2017-18
-## 35  1610612744  Golden State Warriors     0.707            5.9    0.762 2017-18
-## 36  1610612745        Houston Rockets     0.793            8.4    0.647 2017-18
-## 37  1610612754         Indiana Pacers     0.585            1.3    0.429 2017-18
-## 38  1610612748             Miami Heat     0.537            0.4    0.200 2017-18
-## 39  1610612749        Milwaukee Bucks     0.537           -0.2    0.429 2017-18
-## 40  1610612750 Minnesota Timberwolves     0.573            2.3    0.200 2017-18
-## 41  1610612740   New Orleans Pelicans     0.585            1.1    0.556 2017-18
-## 42  1610612760  Oklahoma City Thunder     0.585            3.7    0.333 2017-18
-## 43  1610612755     Philadelphia 76ers     0.634            4.6    0.500 2017-18
-## 44  1610612757 Portland Trail Blazers     0.598            2.7    0.000 2017-18
-## 45  1610612759      San Antonio Spurs     0.573            3.0    0.200 2017-18
-## 46  1610612761        Toronto Raptors     0.720            7.7    0.400 2017-18
-## 47  1610612762              Utah Jazz     0.585            4.4    0.455 2017-18
-## 48  1610612764     Washington Wizards     0.524            0.4    0.333 2017-18
-## 49  1610612738         Boston Celtics     0.598            4.3    0.556 2018-19
-## 50  1610612751          Brooklyn Nets     0.512           -0.1    0.200 2018-19
-## 51  1610612743         Denver Nuggets     0.659            4.0    0.500 2018-19
-## 52  1610612765        Detroit Pistons     0.500           -0.3    0.000 2018-19
-## 53  1610612744  Golden State Warriors     0.695            6.5    0.636 2018-19
-## 54  1610612745        Houston Rockets     0.646            4.8    0.545 2018-19
-## 55  1610612754         Indiana Pacers     0.585            3.4    0.000 2018-19
-## 56  1610612746            LA Clippers     0.585            1.0    0.333 2018-19
-## 57  1610612749        Milwaukee Bucks     0.732            8.6    0.667 2018-19
-## 58  1610612760  Oklahoma City Thunder     0.598            3.4    0.200 2018-19
-## 59  1610612753          Orlando Magic     0.512            0.6    0.200 2018-19
-## 60  1610612755     Philadelphia 76ers     0.622            2.6    0.583 2018-19
-## 61  1610612757 Portland Trail Blazers     0.646            4.2    0.500 2018-19
-## 62  1610612759      San Antonio Spurs     0.585            1.6    0.429 2018-19
-## 63  1610612761        Toronto Raptors     0.707            5.8    0.667 2018-19
-## 64  1610612762              Utah Jazz     0.610            5.0    0.200 2018-19
-## 65  1610612738         Boston Celtics     0.667            6.3    0.588 2019-20
-## 66  1610612751          Brooklyn Nets     0.486           -0.5    0.000 2019-20
-## 67  1610612742       Dallas Mavericks     0.573            4.8    0.333 2019-20
-## 68  1610612743         Denver Nuggets     0.630            2.2    0.474 2019-20
-## 69  1610612745        Houston Rockets     0.611            2.7    0.417 2019-20
-## 70  1610612754         Indiana Pacers     0.616            1.9    0.000 2019-20
-## 71  1610612746            LA Clippers     0.681            6.3    0.538 2019-20
-## 72  1610612747     Los Angeles Lakers     0.732            5.6    0.762 2019-20
-## 73  1610612748             Miami Heat     0.603            2.7    0.667 2019-20
-## 74  1610612749        Milwaukee Bucks     0.767            9.4    0.500 2019-20
-## 75  1610612760  Oklahoma City Thunder     0.611            2.1    0.429 2019-20
-## 76  1610612753          Orlando Magic     0.452           -1.3    0.200 2019-20
-## 77  1610612755     Philadelphia 76ers     0.589            2.3    0.000 2019-20
-## 78  1610612757 Portland Trail Blazers     0.473           -1.1    0.200 2019-20
-## 79  1610612761        Toronto Raptors     0.736            6.1    0.636 2019-20
-## 80  1610612762              Utah Jazz     0.611            2.5    0.429 2019-20
-## 81  1610612737          Atlanta Hawks     0.569            2.2    0.556 2020-21
-## 82  1610612738         Boston Celtics     0.500            1.2    0.200 2020-21
-## 83  1610612751          Brooklyn Nets     0.667            4.2    0.583 2020-21
-## 84  1610612742       Dallas Mavericks     0.583            2.3    0.429 2020-21
-## 85  1610612743         Denver Nuggets     0.653            4.8    0.400 2020-21
-## 86  1610612746            LA Clippers     0.653            6.1    0.526 2020-21
-## 87  1610612747     Los Angeles Lakers     0.583            2.9    0.333 2020-21
-## 88  1610612763      Memphis Grizzlies     0.528            1.2    0.200 2020-21
-## 89  1610612748             Miami Heat     0.556           -0.1    0.000 2020-21
-## 90  1610612749        Milwaukee Bucks     0.639            5.8    0.696 2020-21
-## 91  1610612752        New York Knicks     0.569            2.4    0.200 2020-21
-## 92  1610612755     Philadelphia 76ers     0.681            5.5    0.583 2020-21
-## 93  1610612756           Phoenix Suns     0.708            5.9    0.636 2020-21
-## 94  1610612757 Portland Trail Blazers     0.583            1.8    0.333 2020-21
-## 95  1610612762              Utah Jazz     0.722            9.0    0.545 2020-21
-## 96  1610612764     Washington Wizards     0.472           -1.6    0.200 2020-21
-## 97  1610612737          Atlanta Hawks     0.524            1.6    0.200 2021-22
-## 98  1610612738         Boston Celtics     0.622            7.4    0.583 2021-22
-## 99  1610612751          Brooklyn Nets     0.537            0.9    0.000 2021-22
-## 100 1610612741          Chicago Bulls     0.561           -0.5    0.200 2021-22
-## 101 1610612742       Dallas Mavericks     0.634            3.5    0.500 2021-22
-## 102 1610612743         Denver Nuggets     0.585            2.3    0.200 2021-22
-## 103 1610612744  Golden State Warriors     0.646            5.5    0.727 2021-22
-## 104 1610612763      Memphis Grizzlies     0.683            5.3    0.500 2021-22
-## 105 1610612748             Miami Heat     0.646            4.5    0.611 2021-22
-## 106 1610612749        Milwaukee Bucks     0.622            3.2    0.583 2021-22
-## 107 1610612750 Minnesota Timberwolves     0.561            2.7    0.333 2021-22
-## 108 1610612740   New Orleans Pelicans     0.439           -0.8    0.333 2021-22
-## 109 1610612755     Philadelphia 76ers     0.622            2.8    0.500 2021-22
-## 110 1610612756           Phoenix Suns     0.780            7.5    0.538 2021-22
-## 111 1610612761        Toronto Raptors     0.585            2.2    0.333 2021-22
-## 112 1610612762              Utah Jazz     0.598            6.2    0.333 2021-22
-## 113 1610612737          Atlanta Hawks     0.500            0.1    0.333 2022-23
-## 114 1610612738         Boston Celtics     0.695            6.7    0.550 2022-23
-## 115 1610612751          Brooklyn Nets     0.549            1.1    0.000 2022-23
-## 116 1610612739    Cleveland Cavaliers     0.622            5.6    0.200 2022-23
-## 117 1610612743         Denver Nuggets     0.646            3.3    0.800 2022-23
-## 118 1610612744  Golden State Warriors     0.537            1.7    0.462 2022-23
-## 119 1610612746            LA Clippers     0.537            0.5    0.200 2022-23
-## 120 1610612747     Los Angeles Lakers     0.524            0.7    0.500 2022-23
-## 121 1610612763      Memphis Grizzlies     0.622            4.0    0.333 2022-23
-## 122 1610612748             Miami Heat     0.537           -0.5    0.565 2022-23
-## 123 1610612749        Milwaukee Bucks     0.707            3.4    0.200 2022-23
-## 124 1610612750 Minnesota Timberwolves     0.512            0.2    0.200 2022-23
-## 125 1610612752        New York Knicks     0.573            2.8    0.545 2022-23
-## 126 1610612755     Philadelphia 76ers     0.659            4.4    0.636 2022-23
-## 127 1610612756           Phoenix Suns     0.549            2.2    0.545 2022-23
-## 128 1610612758       Sacramento Kings     0.585            2.6    0.429 2022-23
-## 129 1610612738         Boston Celtics     0.780           11.7    0.842 2023-24
-## 130 1610612739    Cleveland Cavaliers     0.585            2.5    0.417 2023-24
-## 131 1610612742       Dallas Mavericks     0.610            2.1    0.591 2023-24
-## 132 1610612743         Denver Nuggets     0.695            5.5    0.583 2023-24
-## 133 1610612754         Indiana Pacers     0.573            2.9    0.471 2023-24
-## 134 1610612746            LA Clippers     0.622            3.4    0.333 2023-24
-## 135 1610612747     Los Angeles Lakers     0.573            0.6    0.200 2023-24
-## 136 1610612748             Miami Heat     0.561            1.8    0.200 2023-24
-## 137 1610612749        Milwaukee Bucks     0.598            2.6    0.333 2023-24
-## 138 1610612750 Minnesota Timberwolves     0.683            6.3    0.563 2023-24
-## 139 1610612740   New Orleans Pelicans     0.598            4.6    0.000 2023-24
-## 140 1610612752        New York Knicks     0.610            4.9    0.538 2023-24
-## 141 1610612760  Oklahoma City Thunder     0.695            7.3    0.600 2023-24
-## 142 1610612753          Orlando Magic     0.573            2.2    0.429 2023-24
-## 143 1610612755     Philadelphia 76ers     0.573            3.1    0.333 2023-24
-## 144 1610612756           Phoenix Suns     0.598            3.1    0.000 2023-24
-## 145 1610612738         Boston Celtics     0.744            9.4    0.545 2024-25
-## 146 1610612739    Cleveland Cavaliers     0.780            9.2    0.556 2024-25
-## 147 1610612743         Denver Nuggets     0.610            3.8    0.500 2024-25
-## 148 1610612765        Detroit Pistons     0.537            2.1    0.333 2024-25
-## 149 1610612744  Golden State Warriors     0.585            3.2    0.417 2024-25
-## 150 1610612745        Houston Rockets     0.634            4.6    0.429 2024-25
-## 151 1610612754         Indiana Pacers     0.610            2.1    0.652 2024-25
-## 152 1610612746            LA Clippers     0.610            4.9    0.429 2024-25
-## 153 1610612747     Los Angeles Lakers     0.610            1.2    0.200 2024-25
-## 154 1610612763      Memphis Grizzlies     0.585            4.7    0.000 2024-25
-## 155 1610612748             Miami Heat     0.451            0.4    0.000 2024-25
-## 156 1610612749        Milwaukee Bucks     0.585            2.4    0.200 2024-25
-## 157 1610612750 Minnesota Timberwolves     0.598            5.0    0.600 2024-25
-## 158 1610612752        New York Knicks     0.622            4.0    0.556 2024-25
-## 159 1610612760  Oklahoma City Thunder     0.829           12.7    0.696 2024-25
-## 160 1610612753          Orlando Magic     0.500           -0.2    0.200 2024-25</code></pre>
+<pre><code>##        TEAM_ID              TEAM_NAME NET_RATING W_PCT W_PCT_PO  season
+## 1   1610612737          Atlanta Hawks        3.9 0.585    0.400 2015-16
+## 2   1610612738         Boston Celtics        3.3 0.585    0.333 2015-16
+## 3   1610612766      Charlotte Hornets        2.7 0.585    0.429 2015-16
+## 4   1610612739    Cleveland Cavaliers        6.3 0.695    0.762 2015-16
+## 5   1610612742       Dallas Mavericks       -0.4 0.512    0.200 2015-16
+## 6   1610612765        Detroit Pistons        0.3 0.537    0.000 2015-16
+## 7   1610612744  Golden State Warriors       10.6 0.890    0.625 2015-16
+## 8   1610612745        Houston Rockets        0.0 0.500    0.200 2015-16
+## 9   1610612754         Indiana Pacers        1.6 0.549    0.429 2015-16
+## 10  1610612746            LA Clippers        4.5 0.646    0.333 2015-16
+## 11  1610612763      Memphis Grizzlies       -2.4 0.512    0.000 2015-16
+## 12  1610612748             Miami Heat        1.7 0.585    0.500 2015-16
+## 13  1610612760  Oklahoma City Thunder        7.4 0.671    0.611 2015-16
+## 14  1610612757 Portland Trail Blazers        0.8 0.537    0.455 2015-16
+## 15  1610612759      San Antonio Spurs       11.1 0.817    0.600 2015-16
+## 16  1610612761        Toronto Raptors        4.4 0.683    0.500 2015-16
+## 17  1610612737          Atlanta Hawks       -0.7 0.524    0.333 2016-17
+## 18  1610612738         Boston Celtics        2.6 0.646    0.500 2016-17
+## 19  1610612741          Chicago Bulls        0.3 0.500    0.333 2016-17
+## 20  1610612739    Cleveland Cavaliers        3.1 0.622    0.722 2016-17
+## 21  1610612744  Golden State Warriors       11.4 0.817    0.941 2016-17
+## 22  1610612745        Houston Rockets        5.7 0.671    0.545 2016-17
+## 23  1610612754         Indiana Pacers       -0.2 0.512    0.000 2016-17
+## 24  1610612746            LA Clippers        4.4 0.622    0.429 2016-17
+## 25  1610612763      Memphis Grizzlies        0.5 0.524    0.333 2016-17
+## 26  1610612749        Milwaukee Bucks       -0.2 0.512    0.333 2016-17
+## 27  1610612760  Oklahoma City Thunder        0.8 0.573    0.200 2016-17
+## 28  1610612757 Portland Trail Blazers       -0.6 0.500    0.000 2016-17
+## 29  1610612759      San Antonio Spurs        7.4 0.744    0.500 2016-17
+## 30  1610612761        Toronto Raptors        4.3 0.622    0.400 2016-17
+## 31  1610612762              Utah Jazz        4.3 0.622    0.364 2016-17
+## 32  1610612764     Washington Wizards        1.7 0.598    0.538 2016-17
+## 33  1610612738         Boston Celtics        3.6 0.671    0.579 2017-18
+## 34  1610612739    Cleveland Cavaliers        1.0 0.610    0.545 2017-18
+## 35  1610612744  Golden State Warriors        5.9 0.707    0.762 2017-18
+## 36  1610612745        Houston Rockets        8.4 0.793    0.647 2017-18
+## 37  1610612754         Indiana Pacers        1.3 0.585    0.429 2017-18
+## 38  1610612748             Miami Heat        0.4 0.537    0.200 2017-18
+## 39  1610612749        Milwaukee Bucks       -0.2 0.537    0.429 2017-18
+## 40  1610612750 Minnesota Timberwolves        2.3 0.573    0.200 2017-18
+## 41  1610612740   New Orleans Pelicans        1.1 0.585    0.556 2017-18
+## 42  1610612760  Oklahoma City Thunder        3.7 0.585    0.333 2017-18
+## 43  1610612755     Philadelphia 76ers        4.6 0.634    0.500 2017-18
+## 44  1610612757 Portland Trail Blazers        2.7 0.598    0.000 2017-18
+## 45  1610612759      San Antonio Spurs        3.0 0.573    0.200 2017-18
+## 46  1610612761        Toronto Raptors        7.7 0.720    0.400 2017-18
+## 47  1610612762              Utah Jazz        4.4 0.585    0.455 2017-18
+## 48  1610612764     Washington Wizards        0.4 0.524    0.333 2017-18
+## 49  1610612738         Boston Celtics        4.3 0.598    0.556 2018-19
+## 50  1610612751          Brooklyn Nets       -0.1 0.512    0.200 2018-19
+## 51  1610612743         Denver Nuggets        4.0 0.659    0.500 2018-19
+## 52  1610612765        Detroit Pistons       -0.3 0.500    0.000 2018-19
+## 53  1610612744  Golden State Warriors        6.5 0.695    0.636 2018-19
+## 54  1610612745        Houston Rockets        4.8 0.646    0.545 2018-19
+## 55  1610612754         Indiana Pacers        3.4 0.585    0.000 2018-19
+## 56  1610612746            LA Clippers        1.0 0.585    0.333 2018-19
+## 57  1610612749        Milwaukee Bucks        8.6 0.732    0.667 2018-19
+## 58  1610612760  Oklahoma City Thunder        3.4 0.598    0.200 2018-19
+## 59  1610612753          Orlando Magic        0.6 0.512    0.200 2018-19
+## 60  1610612755     Philadelphia 76ers        2.6 0.622    0.583 2018-19
+## 61  1610612757 Portland Trail Blazers        4.2 0.646    0.500 2018-19
+## 62  1610612759      San Antonio Spurs        1.6 0.585    0.429 2018-19
+## 63  1610612761        Toronto Raptors        5.8 0.707    0.667 2018-19
+## 64  1610612762              Utah Jazz        5.0 0.610    0.200 2018-19
+## 65  1610612738         Boston Celtics        6.3 0.667    0.588 2019-20
+## 66  1610612751          Brooklyn Nets       -0.5 0.486    0.000 2019-20
+## 67  1610612742       Dallas Mavericks        4.8 0.573    0.333 2019-20
+## 68  1610612743         Denver Nuggets        2.2 0.630    0.474 2019-20
+## 69  1610612745        Houston Rockets        2.7 0.611    0.417 2019-20
+## 70  1610612754         Indiana Pacers        1.9 0.616    0.000 2019-20
+## 71  1610612746            LA Clippers        6.3 0.681    0.538 2019-20
+## 72  1610612747     Los Angeles Lakers        5.6 0.732    0.762 2019-20
+## 73  1610612748             Miami Heat        2.7 0.603    0.667 2019-20
+## 74  1610612749        Milwaukee Bucks        9.4 0.767    0.500 2019-20
+## 75  1610612760  Oklahoma City Thunder        2.1 0.611    0.429 2019-20
+## 76  1610612753          Orlando Magic       -1.3 0.452    0.200 2019-20
+## 77  1610612755     Philadelphia 76ers        2.3 0.589    0.000 2019-20
+## 78  1610612757 Portland Trail Blazers       -1.1 0.473    0.200 2019-20
+## 79  1610612761        Toronto Raptors        6.1 0.736    0.636 2019-20
+## 80  1610612762              Utah Jazz        2.5 0.611    0.429 2019-20
+## 81  1610612737          Atlanta Hawks        2.2 0.569    0.556 2020-21
+## 82  1610612738         Boston Celtics        1.2 0.500    0.200 2020-21
+## 83  1610612751          Brooklyn Nets        4.2 0.667    0.583 2020-21
+## 84  1610612742       Dallas Mavericks        2.3 0.583    0.429 2020-21
+## 85  1610612743         Denver Nuggets        4.8 0.653    0.400 2020-21
+## 86  1610612746            LA Clippers        6.1 0.653    0.526 2020-21
+## 87  1610612747     Los Angeles Lakers        2.9 0.583    0.333 2020-21
+## 88  1610612763      Memphis Grizzlies        1.2 0.528    0.200 2020-21
+## 89  1610612748             Miami Heat       -0.1 0.556    0.000 2020-21
+## 90  1610612749        Milwaukee Bucks        5.8 0.639    0.696 2020-21
+## 91  1610612752        New York Knicks        2.4 0.569    0.200 2020-21
+## 92  1610612755     Philadelphia 76ers        5.5 0.681    0.583 2020-21
+## 93  1610612756           Phoenix Suns        5.9 0.708    0.636 2020-21
+## 94  1610612757 Portland Trail Blazers        1.8 0.583    0.333 2020-21
+## 95  1610612762              Utah Jazz        9.0 0.722    0.545 2020-21
+## 96  1610612764     Washington Wizards       -1.6 0.472    0.200 2020-21
+## 97  1610612737          Atlanta Hawks        1.6 0.524    0.200 2021-22
+## 98  1610612738         Boston Celtics        7.4 0.622    0.583 2021-22
+## 99  1610612751          Brooklyn Nets        0.9 0.537    0.000 2021-22
+## 100 1610612741          Chicago Bulls       -0.5 0.561    0.200 2021-22
+## 101 1610612742       Dallas Mavericks        3.5 0.634    0.500 2021-22
+## 102 1610612743         Denver Nuggets        2.3 0.585    0.200 2021-22
+## 103 1610612744  Golden State Warriors        5.5 0.646    0.727 2021-22
+## 104 1610612763      Memphis Grizzlies        5.3 0.683    0.500 2021-22
+## 105 1610612748             Miami Heat        4.5 0.646    0.611 2021-22
+## 106 1610612749        Milwaukee Bucks        3.2 0.622    0.583 2021-22
+## 107 1610612750 Minnesota Timberwolves        2.7 0.561    0.333 2021-22
+## 108 1610612740   New Orleans Pelicans       -0.8 0.439    0.333 2021-22
+## 109 1610612755     Philadelphia 76ers        2.8 0.622    0.500 2021-22
+## 110 1610612756           Phoenix Suns        7.5 0.780    0.538 2021-22
+## 111 1610612761        Toronto Raptors        2.2 0.585    0.333 2021-22
+## 112 1610612762              Utah Jazz        6.2 0.598    0.333 2021-22
+## 113 1610612737          Atlanta Hawks        0.1 0.500    0.333 2022-23
+## 114 1610612738         Boston Celtics        6.7 0.695    0.550 2022-23
+## 115 1610612751          Brooklyn Nets        1.1 0.549    0.000 2022-23
+## 116 1610612739    Cleveland Cavaliers        5.6 0.622    0.200 2022-23
+## 117 1610612743         Denver Nuggets        3.3 0.646    0.800 2022-23
+## 118 1610612744  Golden State Warriors        1.7 0.537    0.462 2022-23
+## 119 1610612746            LA Clippers        0.5 0.537    0.200 2022-23
+## 120 1610612747     Los Angeles Lakers        0.7 0.524    0.500 2022-23
+## 121 1610612763      Memphis Grizzlies        4.0 0.622    0.333 2022-23
+## 122 1610612748             Miami Heat       -0.5 0.537    0.565 2022-23
+## 123 1610612749        Milwaukee Bucks        3.4 0.707    0.200 2022-23
+## 124 1610612750 Minnesota Timberwolves        0.2 0.512    0.200 2022-23
+## 125 1610612752        New York Knicks        2.8 0.573    0.545 2022-23
+## 126 1610612755     Philadelphia 76ers        4.4 0.659    0.636 2022-23
+## 127 1610612756           Phoenix Suns        2.2 0.549    0.545 2022-23
+## 128 1610612758       Sacramento Kings        2.6 0.585    0.429 2022-23
+## 129 1610612738         Boston Celtics       11.7 0.780    0.842 2023-24
+## 130 1610612739    Cleveland Cavaliers        2.5 0.585    0.417 2023-24
+## 131 1610612742       Dallas Mavericks        2.1 0.610    0.591 2023-24
+## 132 1610612743         Denver Nuggets        5.5 0.695    0.583 2023-24
+## 133 1610612754         Indiana Pacers        2.9 0.573    0.471 2023-24
+## 134 1610612746            LA Clippers        3.4 0.622    0.333 2023-24
+## 135 1610612747     Los Angeles Lakers        0.6 0.573    0.200 2023-24
+## 136 1610612748             Miami Heat        1.8 0.561    0.200 2023-24
+## 137 1610612749        Milwaukee Bucks        2.6 0.598    0.333 2023-24
+## 138 1610612750 Minnesota Timberwolves        6.3 0.683    0.563 2023-24
+## 139 1610612740   New Orleans Pelicans        4.6 0.598    0.000 2023-24
+## 140 1610612752        New York Knicks        4.9 0.610    0.538 2023-24
+## 141 1610612760  Oklahoma City Thunder        7.3 0.695    0.600 2023-24
+## 142 1610612753          Orlando Magic        2.2 0.573    0.429 2023-24
+## 143 1610612755     Philadelphia 76ers        3.1 0.573    0.333 2023-24
+## 144 1610612756           Phoenix Suns        3.1 0.598    0.000 2023-24
+## 145 1610612738         Boston Celtics        9.4 0.744    0.545 2024-25
+## 146 1610612739    Cleveland Cavaliers        9.2 0.780    0.556 2024-25
+## 147 1610612743         Denver Nuggets        3.8 0.610    0.500 2024-25
+## 148 1610612765        Detroit Pistons        2.1 0.537    0.333 2024-25
+## 149 1610612744  Golden State Warriors        3.2 0.585    0.417 2024-25
+## 150 1610612745        Houston Rockets        4.6 0.634    0.429 2024-25
+## 151 1610612754         Indiana Pacers        2.1 0.610    0.652 2024-25
+## 152 1610612746            LA Clippers        4.9 0.610    0.429 2024-25
+## 153 1610612747     Los Angeles Lakers        1.2 0.610    0.200 2024-25
+## 154 1610612763      Memphis Grizzlies        4.7 0.585    0.000 2024-25
+## 155 1610612748             Miami Heat        0.4 0.451    0.000 2024-25
+## 156 1610612749        Milwaukee Bucks        2.4 0.585    0.200 2024-25
+## 157 1610612750 Minnesota Timberwolves        5.0 0.598    0.600 2024-25
+## 158 1610612752        New York Knicks        4.0 0.622    0.556 2024-25
+## 159 1610612760  Oklahoma City Thunder       12.7 0.829    0.696 2024-25
+## 160 1610612753          Orlando Magic       -0.2 0.500    0.200 2024-25</code></pre>
 <pre class="r"><code>cors</code></pre>
 <pre><code>## # A tibble: 10 × 3
 ##    season  cor_win_pct cor_net_rating
