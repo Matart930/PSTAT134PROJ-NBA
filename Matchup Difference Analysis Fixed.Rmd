@@ -1,0 +1,339 @@
+---
+title: "Matchup Difference Analysis"
+author: "Erika Nares"
+date: "2026-05-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(reticulate)
+```
+
+```{r}
+combined_df <- read.csv("combined_df.csv")
+```
+
+```{python}
+from nba_api.stats.endpoints import leaguegamelog
+
+def get_playoff_game_logs(season_year):
+
+    logs = leaguegamelog.LeagueGameLog(
+        season = season_year,
+        season_type_all_star = "Playoffs",
+        player_or_team_abbreviation = "T",
+        timeout = 60
+    )
+
+    df_logs = logs.get_data_frames()[0]
+
+    return df_logs
+```
+
+```{r}
+get_playoff_series_data <- function(season_year){
+  
+  df_logs <- py$get_playoff_game_logs(season_year)
+  
+  abbrev_lookup <- df_logs %>%
+    select(TEAM_ABBREVIATION, TEAM_NAME) %>%
+    distinct() %>%
+    rename(
+      OPP_ABBREVIATION = TEAM_ABBREVIATION,
+      OPP_TEAM_NAME = TEAM_NAME
+    )
+  
+  playoff_games <- df_logs %>%
+    select(
+      TEAM_NAME,
+      TEAM_ABBREVIATION,
+      MATCHUP,
+      WL
+    ) %>%
+    mutate(
+      OPP_ABBREVIATION = str_sub(MATCHUP, -3, -1),
+      WIN = ifelse(WL == "W", 1, 0)
+    ) %>%
+    left_join(abbrev_lookup, by = "OPP_ABBREVIATION") %>%
+    mutate(
+      SERIES_ID = map2_chr(
+        TEAM_NAME,
+        OPP_TEAM_NAME,
+        ~ paste(sort(c(.x, .y)), collapse = " vs ")
+      )
+    )
+  
+  team_series <- playoff_games %>%
+    group_by(SERIES_ID, TEAM_NAME, OPP_TEAM_NAME) %>%
+    summarize(
+      SERIES_WINS = sum(WIN),
+      .groups = "drop"
+    )
+  
+  playoff_series <- team_series %>%
+    group_by(SERIES_ID) %>%
+    arrange(TEAM_NAME) %>%
+    summarize(
+      season = season_year,
+      TEAM_A = first(TEAM_NAME),
+      TEAM_B = last(TEAM_NAME),
+      TEAM_A_WINS = SERIES_WINS[TEAM_NAME == TEAM_A],
+      TEAM_B_WINS = SERIES_WINS[TEAM_NAME == TEAM_B],
+      WINNER = ifelse(TEAM_A_WINS > TEAM_B_WINS, 1, 0),
+      .groups = "drop"
+    )
+  
+  return(playoff_series)
+}
+head(get_playoff_series_data("2014-15"))
+```
+
+```{r}
+years <- c(
+  "2015-16", "2016-17", "2017-18", "2018-19", "2019-20",
+  "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26")
+  
+all_series <- map_dfr(years, function(year) {
+  Sys.sleep(5)
+  get_playoff_series_data(year)
+})
+
+head(all_series)
+
+
+```
+```{r}
+write.csv(all_series, "all_series.csv", row.names = FALSE)
+```
+
+
+```{r}
+series_df <- all_series %>%
+  left_join(
+    combined_df,
+    by = c(
+      "TEAM_A" = "TEAM_NAME",
+      "season" = "season"
+    )
+  )
+head(series_df)
+```
+
+```{r}
+series_df <- series_df %>%
+  left_join(
+    combined_df,
+    by = c(
+      "TEAM_B" = "TEAM_NAME",
+      "season" = "season"
+    ),
+    suffix = c("_A", "_B")
+  )
+head(series_df)
+```
+```{r}
+series_df <- series_df %>%
+  mutate(
+
+    WIN_PCT_DIFF =
+      W_PCT_REG_A -
+      W_PCT_REG_B,
+
+    NET_RATING_DIFF =
+      NET_RATING_REG_A -
+      NET_RATING_REG_B,
+
+    TS_DIFF =
+      TS_PCT_REG_A -
+      TS_PCT_REG_B,
+
+    THREE_PT_DIFF =
+      THREE_PT_ATTEMPT_RATE_REG_A -
+      THREE_PT_ATTEMPT_RATE_REG_B,
+
+    OFF_RATING_DIFF =
+      OFF_RATING_REG_A -
+      OFF_RATING_REG_B,
+
+    DEF_RATING_DIFF =
+      DEF_RATING_REG_A -
+      DEF_RATING_REG_B,
+    
+    EFG_DIFF =
+      EFG_PCT_REG_A -
+      EFG_PCT_REG_B,
+    
+    OREB_DIFF =
+      OREB_PCT_REG_A -
+      OREB_PCT_REG_B,
+    
+    TOV_DIFF =
+      TOV_PCT_REG_A -
+      TOV_PCT_REG_B,
+    
+    PLUS_MINUS_DIFF =
+      PLUS_MINUS_REG_A -
+      PLUS_MINUS_REG_B,
+    
+    SOS_DIFF =
+      SOS_REG_A -
+      SOS_REG_B,
+    
+    SRS_DIFF =
+      SRS_REG_A -
+      SRS_REG_B
+    
+    
+  )
+head(series_df)
+```
+
+```{r}
+series_df <- series_df %>% select(SERIES_ID, season, TEAM_A, TEAM_B, WINNER, TEAM_ID_A, TEAM_ID_B, WIN_PCT_DIFF, 
+                                  NET_RATING_DIFF, TS_DIFF, THREE_PT_DIFF, OFF_RATING_DIFF, DEF_RATING_DIFF, 
+                                  EFG_DIFF, OREB_DIFF, TOV_DIFF, PLUS_MINUS_DIFF, SOS_DIFF, SRS_DIFF)
+```
+```{r}
+head(series_df)
+```
+
+```{r}
+write.csv(series_df, "series_df.csv", row.names = FALSE)
+```
+
+```{r}
+difference_cors <- series_df %>% filter(season != "2025-26") %>% group_by(season) %>% 
+  summarize(
+    win_pct_diff_cor = cor(WIN_PCT_DIFF, WINNER),
+    net_rating_diff_cor = cor(NET_RATING_DIFF, WINNER),
+    plus_minus_diff_cor = cor(PLUS_MINUS_DIFF, WINNER),
+    off_rating_diff_cor = cor(OFF_RATING_DIFF, WINNER),
+    def_rating_diff_cor = cor(DEF_RATING_DIFF, WINNER),
+    ts_diff_cor = cor(TS_DIFF, WINNER),
+    efg_diff_cor = cor(EFG_DIFF, WINNER),
+    three_pt_diff_cor = cor(THREE_PT_DIFF, WINNER),
+    tov_diff_cor = cor(TOV_DIFF, WINNER),
+    oreb_diff_cor = cor(OREB_DIFF, WINNER),
+    sos_diff_cor = cor(SOS_DIFF, WINNER),
+    srs_diff_cor = cor(SRS_DIFF, WINNER)
+  )
+
+head(difference_cors)
+```
+
+
+
+```{r}
+train_series_df <- series_df %>%
+  filter(season != "2025-26")
+
+difference_correlations <- tibble(
+
+  Variable = c(
+    "WIN_PCT_DIFF",
+    "NET_RATING_DIFF",
+    "TS_DIFF",
+    "THREE_PT_DIFF",
+    "OFF_RATING_DIFF",
+    "DEF_RATING_DIFF",
+    "EFG_DIFF",
+    "OREB_DIFF",
+    "TOV_DIFF",
+    "PLUS_MINUS_DIFF",
+    "SOS_DIFF",
+    "SRS_DIFF"
+  ),
+
+  Correlation = c(
+    cor(train_series_df$WIN_PCT_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$NET_RATING_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$TS_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$THREE_PT_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$OFF_RATING_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$DEF_RATING_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$EFG_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$OREB_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$TOV_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$PLUS_MINUS_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$SOS_DIFF,
+        train_series_df$WINNER),
+
+    cor(train_series_df$SRS_DIFF,
+        train_series_df$WINNER)
+  )
+)
+
+difference_correlations %>%
+  arrange(desc(abs(Correlation)))
+```
+
+```{r}
+diff_predictors <- series_df %>%
+  filter(season != "2025-26")%>%
+  select(
+    WIN_PCT_DIFF,
+    NET_RATING_DIFF,
+    TS_DIFF,
+    THREE_PT_DIFF,
+    OFF_RATING_DIFF,
+    DEF_RATING_DIFF,
+    EFG_DIFF,
+    OREB_DIFF,
+    TOV_DIFF,
+    PLUS_MINUS_DIFF,
+    SOS_DIFF,
+    SRS_DIFF
+  )
+```
+
+```{r}
+round(
+  cor(
+    diff_predictors,
+    use = "complete.obs"
+  ),
+  2
+)
+```
+
+```{r}
+library(corrplot)
+
+corrplot(
+  cor(diff_predictors, use = "complete.obs"),
+  method = "color",
+  type = "lower",
+  addCoef.col = "black",
+  number.cex = 0.5,
+  tl.cex = 0.6
+)
+```
+
+1. Win percentage difference
+2. TS Difference
+3. Three Point Difference 
