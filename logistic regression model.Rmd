@@ -1,0 +1,195 @@
+---
+title: "logistic regression model"
+author: "Erika Nares"
+date: "2026-06-02"
+output: html_document
+---
+
+```{r}
+final_series_df <- read.csv("final_series_df.csv")
+head(final_series_df)
+```
+
+```{r}
+library(tidymodels)
+library(yardstick)
+library(glmnet)
+library(ranger)
+library(vip)
+library(themis)
+```
+
+```{r}
+final_series_df <- final_series_df %>%
+  mutate(
+    WINNER = factor(
+      WINNER,
+      levels = c(0, 1),
+      labels = c("TEAM_B", "TEAM_A")
+    )
+  )
+```
+
+```{r}
+final_series_df <- final_series_df %>% mutate(WINNER = as.factor(WINNER))
+final_series_df
+```
+
+```{r}
+train_final_df <- final_series_df %>%
+  filter(season != "2025-26")
+
+test_final_df <- final_series_df %>%
+  filter(season == "2025-26")
+```
+
+```{r}
+set.seed(31)
+nba_folds <- vfold_cv(train_final_df, v = 5, strata=WINNER)
+```
+
+```{r}
+nrow(train_final_df)
+```
+
+```{r}
+set.seed(31)
+nba_recipe <- recipe(
+  WINNER ~ WIN_PCT_DIFF + NET_RATING_DIFF + TS_DIFF + THREE_PT_DIFF  + OFF_RATING_DIFF + DEF_RATING_DIFF + EFG_DIFF + OREB_DIFF + TOV_DIFF + PLUS_MINUS_DIFF + SRS_DIFF + H2H_TS_PCT_DIFF + H2H_WIN_PCT_DIFF + H2H_EFG_PCT_DIFF + H2H_POINT_DIFF_DIFF,
+  data = train_final_df
+) %>% 
+  step_normalize(all_numeric_predictors())
+
+prep(nba_recipe) %>% bake(new_data = train_final_df) %>% slice(1:3)
+```
+
+```{r}
+log_mod_model <- logistic_reg(
+  penalty = tune(),
+  mixture = tune()
+) %>%
+  set_engine("glmnet") %>%
+  set_mode("classification")
+```
+
+```{r}
+logistic_wflow <- workflow() %>%
+  add_model(log_mod_model) %>%
+  add_recipe(nba_recipe)
+```
+
+```{r}
+log_grid <- grid_regular(
+  penalty(range = c(-4, 0)),
+  mixture(),
+  levels = 5
+)
+```
+
+```{r}
+set.seed(31)
+
+logreg_fit <- tune_grid(
+  logistic_wflow,
+  resamples = nba_folds,
+  grid = log_grid,
+  metrics = metric_set(accuracy, roc_auc)
+)
+```
+
+```{r}
+best_logreg <- select_best(
+  logreg_fit,
+  metric = "roc_auc"
+)
+
+final_log_wflow <- finalize_workflow(
+  logistic_wflow,
+  best_logreg
+)
+
+final_log_fit <- fit(
+  final_log_wflow,
+  data = train_final_df
+)
+```
+
+```{r}
+best_logreg <- select_best(
+  logreg_fit,
+  metric = "roc_auc"
+)
+
+final_log_wflow <- finalize_workflow(
+  logistic_wflow,
+  best_logreg
+)
+
+final_log_fit <- fit(
+  final_log_wflow,
+  data = train_final_df
+)
+```
+
+```{r}
+tidy(
+  extract_fit_parsnip(final_log_fit)
+)
+```
+
+```{r}
+logreg_summary <- collect_metrics(logreg_fit) %>%
+  filter(.metric == "roc_auc") %>%
+  arrange(desc(mean))
+
+logreg_summary
+```
+
+
+```{r}
+set.seed(31)
+best_logreg_model <- select_best(logreg_fit, metric = "roc_auc")
+```
+
+
+```{r}
+set.seed(31)
+final_logreg_wf <- finalize_workflow(logistic_wflow, best_logreg_model)
+```
+
+
+```{r}
+set.seed(31)
+final_logreg_fit <- fit(final_logreg_wf, train_final_df)
+```
+
+
+```{r}
+augment(final_logreg_fit, new_data = test_final_df) %>% slice(1:5)
+```
+
+```{r}
+augment(final_logreg_fit, new_data = test_final_df) %>%
+  roc_auc(
+    truth = WINNER,
+    .pred_TEAM_A,
+    event_level = "second"
+  )
+```
+```{r}
+augment(final_logreg_fit, new_data = test_final_df) %>%
+  conf_mat(truth = WINNER, estimate = .pred_class) %>%autoplot(type="heatmap")
+```
+```{r}
+10/14
+```
+
+```{r}
+augment(final_logreg_fit, new_data = test_final_df) %>%
+  roc_curve(WINNER, .pred_TEAM_B) %>%
+  autoplot()
+```
+
+
+
+
