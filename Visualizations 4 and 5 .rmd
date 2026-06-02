@@ -1,0 +1,61 @@
+---
+title: "Final Project Visualizations"
+author: "Yabel Negassi"
+date: "2026-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(reticulate)
+
+combined_df <- read.csv("combined_df.csv")
+
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    cor_win_pct = cor(W_PCT, W_PCT_PO),
+    cor_net_rating = cor(NET_RATING, W_PCT_PO)
+  )
+
+cors
+```
+
+# Visualization 4: Regular Season Win Percentage vs Playoff Success Correlation
+
+```{r}
+library(ggplot2)
+
+ggplot(cors, aes(x = season, y = cor_win_pct)) +
+  geom_line(aes(group = 1)) +
+  geom_point(size = 3) +
+  labs(
+    title = "Win % Correlation with Playoff Win % by Season",
+    x = "Season",
+    y = "Correlation"
+  ) +
+  theme_minimal()
+```
+
+
+# Visualization 5: Regular Season Net Rating vs Playoff Success Correlation
+
+```{r}
+library(ggplot2)
+
+ggplot(cors, aes(x = season, y = cor_net_rating, group = 1)) +
+  geom_line() +
+  geom_point(size = 3) +
+  labs(
+    title = "Net Rating Correlation with Playoff Win % by Season",
+    x = "Season",
+    y = "Correlation"
+  ) +
+  theme_minimal()
+```
