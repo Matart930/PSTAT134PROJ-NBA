@@ -1,0 +1,135 @@
+---
+title: "3 Point Attempt and True Shooting Visualizations"
+author: "Brett Lang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(reticulate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+# Data Prep
+
+```{python}
+from nba_api.stats.endpoints import leaguedashteamstats
+import pandas as pd
+import time
+
+def get_season_data(season_year):
+    
+    # Advanced stats (for TS%)
+    reg = leaguedashteamstats.LeagueDashTeamStats(
+        season=season_year,
+        season_type_all_star="Regular Season",
+        measure_type_detailed_defense="Advanced"
+    )
+    df_reg = reg.get_data_frames()[0]
+    df_reg = df_reg[["TEAM_ID", "TEAM_NAME", "TS_PCT"]]
+    
+    time.sleep(1)
+    
+    # Base stats (for 3PAr = FG3A / FGA)
+    reg_base = leaguedashteamstats.LeagueDashTeamStats(
+        season=season_year,
+        season_type_all_star="Regular Season"
+    )
+    df_base = reg_base.get_data_frames()[0]
+    df_base["THREE_PT_ATTEMPT_RATE"] = df_base["FG3A"] / df_base["FGA"]
+    df_base = df_base[["TEAM_ID", "THREE_PT_ATTEMPT_RATE"]]
+    
+    time.sleep(1)
+    
+    # Playoff win %
+    po = leaguedashteamstats.LeagueDashTeamStats(
+        season=season_year,
+        season_type_all_star="Playoffs"
+    )
+    df_po = po.get_data_frames()[0]
+    df_po = df_po[["TEAM_ID", "W_PCT"]].rename(columns={"W_PCT": "W_PCT_PO"})
+    
+    df = pd.merge(df_reg, df_base, on="TEAM_ID")
+    df = pd.merge(df, df_po, on="TEAM_ID")
+    
+    return df
+
+years = ["2015-16","2016-17","2017-18","2018-19","2019-20",
+         "2020-21","2021-22","2022-23","2023-24","2024-25"]
+
+all_season_data = []
+for year in years:
+    season_df = get_season_data(year)
+    season_df["season"] = year
+    all_season_data.append(season_df)
+    time.sleep(2)
+
+combined_df = pd.concat(all_season_data, ignore_index=True)
+```
+
+# Visualization 1: 3PAR% vs Playoff Win% Scatterplot
+
+```{r, message=FALSE}
+combined_df <- py$combined_df
+
+ggplot(combined_df, aes(x = THREE_PT_ATTEMPT_RATE, y = W_PCT_PO, color = season)) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "3-Point Attempt Rate vs Playoff Win %",
+    x = "3-Point Attempt Rate (Regular Season)",
+    y = "Playoff Win %",
+    color = "Season"
+  )
+```
+
+# Visualization 2: TS% vs Playoff Win% Scatterplot
+
+```{r, message=FALSE}
+ggplot(combined_df, aes(x = TS_PCT, y = W_PCT_PO, color = season)) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(
+    title = "True Shooting % vs Playoff Win %",
+    x = "True Shooting % (Regular Season)",
+    y = "Playoff Win %",
+    color = "Season"
+  )
+```
+
+# Visualization 3: Per Season Correlation Barplot
+
+```{r}
+cors <- combined_df %>%
+  group_by(season) %>%
+  summarize(
+    cor_3par = cor(THREE_PT_ATTEMPT_RATE, W_PCT_PO),
+    cor_ts   = cor(TS_PCT, W_PCT_PO)
+  )
+
+cors_long <- cors %>%
+  pivot_longer(cols = c(cor_3par, cor_ts),
+               names_to = "metric",
+               values_to = "correlation") %>%
+  mutate(metric = recode(metric,
+    cor_3par = "3PT Attempt Rate",
+    cor_ts   = "True Shooting %"
+  ))
+
+ggplot(cors_long, aes(x = season, y = correlation, fill = metric)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Per-Season Correlation with Playoff Win %",
+    x = "Season",
+    y = "Correlation",
+    fill = "Metric"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
