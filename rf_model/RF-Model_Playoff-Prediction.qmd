@@ -1,0 +1,333 @@
+---
+title: "RF Model Playoff Series Prediction"
+format: html
+editor: visual
+---
+
+## RF Model
+
+```{r, message=FALSE, warning=FALSE}
+library(tidymodels)
+library(ranger)
+library(vip)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+
+# -----------------------------
+# Load Data
+# -----------------------------
+df <- read.csv("final_series_df.csv")
+
+abbr_map <- c(
+  "Atlanta Hawks" = "ATL",
+  "Boston Celtics" = "BOS",
+  "Brooklyn Nets" = "BKN",
+  "Charlotte Hornets" = "CHA",
+  "Chicago Bulls" = "CHI",
+  "Cleveland Cavaliers" = "CLE",
+  "Dallas Mavericks" = "DAL",
+  "Denver Nuggets" = "DEN",
+  "Detroit Pistons" = "DET",
+  "Golden State Warriors" = "GSW",
+  "Houston Rockets" = "HOU",
+  "Indiana Pacers" = "IND",
+  "LA Clippers" = "LAC",
+  "Los Angeles Clippers" = "LAC",
+  "Los Angeles Lakers" = "LAL",
+  "Memphis Grizzlies" = "MEM",
+  "Miami Heat" = "MIA",
+  "Milwaukee Bucks" = "MIL",
+  "Minnesota Timberwolves" = "MIN",
+  "New Orleans Pelicans" = "NOP",
+  "New York Knicks" = "NYK",
+  "Oklahoma City Thunder" = "OKC",
+  "Orlando Magic" = "ORL",
+  "Philadelphia 76ers" = "PHI",
+  "Phoenix Suns" = "PHX",
+  "Portland Trail Blazers" = "POR",
+  "Sacramento Kings" = "SAC",
+  "San Antonio Spurs" = "SAS",
+  "Toronto Raptors" = "TOR",
+  "Utah Jazz" = "UTA",
+  "Washington Wizards" = "WAS"
+)
+
+df <- df %>%
+  mutate(
+    TEAM_A_ABBR = abbr_map[TEAM_A],
+    TEAM_B_ABBR = abbr_map[TEAM_B]
+  )
+
+df <- df %>%
+  mutate(
+    WINNER = factor(
+      WINNER,
+      levels = c(0, 1),
+      labels = c("TEAM_B", "TEAM_A")
+    )
+  )
+
+# -----------------------------
+# Train/Test Split
+# -----------------------------
+train_df <- df %>%
+  filter(season != "2025-26")
+
+test_df <- df %>%
+  filter(season == "2025-26")
+
+# -----------------------------
+# Cross Validation
+# -----------------------------
+set.seed(31)
+
+nba_folds <- vfold_cv(
+  train_df,
+  v = 5,
+  strata = WINNER
+)
+
+# -----------------------------
+# Recipe
+# -----------------------------
+nba_recipe <- recipe(
+  WINNER ~
+    WIN_PCT_DIFF +
+    NET_RATING_DIFF +
+    TS_DIFF +
+    THREE_PT_DIFF +
+    OFF_RATING_DIFF +
+    DEF_RATING_DIFF +
+    EFG_DIFF +
+    OREB_DIFF +
+    TOV_DIFF +
+    PLUS_MINUS_DIFF +
+    SRS_DIFF +
+    H2H_TS_PCT_DIFF +
+    H2H_WIN_PCT_DIFF +
+    H2H_EFG_PCT_DIFF +
+    H2H_POINT_DIFF_DIFF,
+  data = train_df
+)
+
+# -----------------------------
+# Random Forest Specification
+# -----------------------------
+rf_spec <- rand_forest(
+  trees = 500,
+  mtry = tune(),
+  min_n = tune()
+) %>%
+  set_engine(
+    "ranger",
+    importance = "impurity"
+  ) %>%
+  set_mode("classification")
+
+# -----------------------------
+# Workflow
+# -----------------------------
+rf_workflow <- workflow() %>%
+  add_recipe(nba_recipe) %>%
+  add_model(rf_spec)
+
+# -----------------------------
+# Hyperparameter Grid
+# -----------------------------
+rf_grid <- expand.grid(
+  mtry = c(2, 4, 6, 8, 10, 12, 15),
+  min_n = c(2, 5, 10, 15, 20)
+)
+
+# -----------------------------
+# Tune Model
+# -----------------------------
+set.seed(31)
+
+rf_res <- tune_grid(
+  rf_workflow,
+  resamples = nba_folds,
+  grid = rf_grid,
+  metrics = metric_set(
+    accuracy,
+    roc_auc
+  )
+)
+
+# -----------------------------
+# View Results
+# -----------------------------
+collect_metrics(rf_res)
+```
+This table displays the performance metrics evaluated across the 5-fold cross-validation grid search. The grid covers combinations of two main hyperparameters: mtry (number of predictors randomly sampled at each split) and min_n (minimum number of data points required in a node to split it further)
+```{r}
+show_best(
+  rf_res,
+  metric = "roc_auc"
+)
+```
+This table acts as a filter on the previous grid search, isolating the top 5 hyperparameter combinations that achieved the highest Area Under the Receiver Operating Characteristic curve (roc_auc)
+```{r}
+
+# -----------------------------
+# Select Best Parameters
+# -----------------------------
+best_rf <- select_best(
+  rf_res,
+  metric = "roc_auc"
+)
+
+print(best_rf)
+```
+Best model had hyperparameters mtry = 2 and min_n = 20.
+```{r}
+# -----------------------------
+# Finalize Workflow
+# -----------------------------
+final_rf <- finalize_workflow(
+  rf_workflow,
+  best_rf
+)
+
+# -----------------------------
+# Fit Final Model
+# -----------------------------
+final_rf_fit <- fit(
+  final_rf,
+  data = train_df
+)
+
+# -----------------------------
+# Predict on Test Set
+# -----------------------------
+rf_preds <- predict(
+  final_rf_fit,
+  test_df,
+  type = "prob"
+) %>%
+  bind_cols(
+    predict(final_rf_fit, test_df)
+  ) %>%
+  bind_cols(test_df)
+
+# -----------------------------
+# Accuracy
+# -----------------------------
+rf_preds %>%
+  metrics(
+    truth = WINNER,
+    estimate = .pred_class
+  )
+```
+This table shows the accuracy of the selected model on the test data.
+```{r}
+
+# -----------------------------
+# ROC AUC
+# -----------------------------
+rf_preds %>%
+  roc_auc(
+    truth = WINNER,
+    .pred_TEAM_A,
+    event_level = "second"
+  )
+```
+This table shows the AUC of the selected model on the test data.
+```{r}
+
+# -----------------------------
+# Confusion Matrix
+# -----------------------------
+rf_preds %>%
+  conf_mat(
+    truth = WINNER,
+    estimate = .pred_class
+  )
+```
+This table breaks down where the model correctly and incorrectly predicted series results.
+```{r}
+
+# -----------------------------
+# Feature Importance Plot
+# -----------------------------
+rf_imp <- final_rf_fit %>%
+  extract_fit_parsnip() %>%
+  vi()
+
+rf_imp_top10 <- rf_imp %>%
+  arrange(desc(Importance)) %>%
+  slice_head(n = 10)
+
+ggplot(rf_imp_top10, aes(
+  x = reorder(Variable, Importance),
+  y = Importance
+)) +
+  geom_col(fill = "#2C7FB8") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Most Important Predictors in NBA Playoffs",
+    subtitle = "Random Forest (Impurity-based importance from ranger)",
+    x = NULL,
+    y = "Variable Importance"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "gray40"),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+```{r}
+
+# -----------------------------
+# Display Predictions
+# -----------------------------
+rf_preds_table <- rf_preds %>%
+  mutate(
+    Actual_Winner = if_else(WINNER == "TEAM_A", TEAM_A_ABBR, TEAM_B_ABBR),
+    Predicted_Winner = if_else(.pred_class == "TEAM_A", TEAM_A_ABBR, TEAM_B_ABBR),
+    Confidence = if_else(.pred_class == "TEAM_A", .pred_TEAM_A, .pred_TEAM_B),
+    Correct = Actual_Winner == Predicted_Winner
+  ) %>%
+  select(
+    TEAM_A = TEAM_A_ABBR,
+    TEAM_B = TEAM_B_ABBR,
+    Actual_Winner,
+    Predicted_Winner,
+    Confidence,
+    Prob_TEAM_A = .pred_TEAM_A,
+    Prob_TEAM_B = .pred_TEAM_B,
+    Correct
+  ) %>%
+  arrange(desc(Confidence))
+
+rf_preds_table %>%
+  mutate(Correct = NULL) %>%  # hide flag column in display
+  kable(
+    digits = 3,
+    caption = "NBA Playoff Predictions Sorted by Confidence (Green = Correct)"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    font_size = 12
+  ) %>%
+  row_spec(
+    which(rf_preds_table$Correct),
+    background = "#d4f7d4"  # light green
+  )
+
+# -----------------------------
+# Save Predictions
+# -----------------------------
+write.csv(
+  rf_preds_table,
+  "rf_predictions_2025_26.csv",
+  row.names = FALSE
+)
+
+
+```
