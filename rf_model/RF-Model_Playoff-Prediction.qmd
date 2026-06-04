@@ -69,6 +69,15 @@ df <- df %>%
     )
   )
 
+finals_obs <- df %>%
+  filter(SERIES_GAMES == 1) %>%
+  mutate(WINNER = NA,
+         TEAM_A_ABBR = abbr_map[TEAM_A],
+    TEAM_B_ABBR = abbr_map[TEAM_B])
+
+df <- df %>%
+  filter(SERIES_GAMES != 1)
+
 # -----------------------------
 # Train/Test Split
 # -----------------------------
@@ -300,6 +309,7 @@ rf_preds_table <- rf_preds %>%
     Confidence,
     Prob_TEAM_A = .pred_TEAM_A,
     Prob_TEAM_B = .pred_TEAM_B,
+    Outcome = SERIES_SCORE,
     Correct
   ) %>%
   arrange(desc(Confidence))
@@ -318,6 +328,41 @@ rf_preds_table %>%
   row_spec(
     which(rf_preds_table$Correct),
     background = "#d4f7d4"  # light green
+  )
+
+finals_probs <- predict(final_rf_fit, finals_obs, type = "prob")
+finals_class <- predict(final_rf_fit, finals_obs)
+
+finals_prediction_table <- finals_obs %>%
+  select(TEAM_A = TEAM_A_ABBR, TEAM_B = TEAM_B_ABBR) %>%
+  bind_cols(finals_class, finals_probs) %>%
+  mutate(
+    Predicted_Winner = if_else(.pred_class == "TEAM_A", TEAM_A, TEAM_B),
+    Confidence = if_else(.pred_class == "TEAM_A", .pred_TEAM_A, .pred_TEAM_B)
+  ) %>%
+  select(
+    TEAM_A, 
+    TEAM_B, 
+    Predicted_Winner, 
+    Confidence, 
+    Prob_TEAM_A = .pred_TEAM_A, 
+    Prob_TEAM_B = .pred_TEAM_B
+  )
+
+finals_prediction_table %>%
+  kable(
+    digits = 3,
+    caption = "2026 NBA Finals: Random Forest Model Prediction"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    font_size = 13
+  ) %>%
+  row_spec(
+    1, 
+    bold = TRUE, 
+    background = "#FFF2CC" 
   )
 
 # -----------------------------
