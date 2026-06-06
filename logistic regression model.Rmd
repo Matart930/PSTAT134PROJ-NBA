@@ -5,22 +5,59 @@ date: "2026-06-02"
 output: html_document
 ---
 
-```{r}
-final_series_df <- read.csv("final_series_df.csv")
-head(final_series_df)
-```
 
 ```{r}
+
 library(tidymodels)
 library(yardstick)
 library(glmnet)
-library(ranger)
 library(vip)
-library(themis)
 ```
 
 ```{r}
-final_series_df <- final_series_df %>%
+df <- read.csv("final_series_df.csv")
+
+abbr_map <- c(
+  "Atlanta Hawks" = "ATL",
+  "Boston Celtics" = "BOS",
+  "Brooklyn Nets" = "BKN",
+  "Charlotte Hornets" = "CHA",
+  "Chicago Bulls" = "CHI",
+  "Cleveland Cavaliers" = "CLE",
+  "Dallas Mavericks" = "DAL",
+  "Denver Nuggets" = "DEN",
+  "Detroit Pistons" = "DET",
+  "Golden State Warriors" = "GSW",
+  "Houston Rockets" = "HOU",
+  "Indiana Pacers" = "IND",
+  "LA Clippers" = "LAC",
+  "Los Angeles Clippers" = "LAC",
+  "Los Angeles Lakers" = "LAL",
+  "Memphis Grizzlies" = "MEM",
+  "Miami Heat" = "MIA",
+  "Milwaukee Bucks" = "MIL",
+  "Minnesota Timberwolves" = "MIN",
+  "New Orleans Pelicans" = "NOP",
+  "New York Knicks" = "NYK",
+  "Oklahoma City Thunder" = "OKC",
+  "Orlando Magic" = "ORL",
+  "Philadelphia 76ers" = "PHI",
+  "Phoenix Suns" = "PHX",
+  "Portland Trail Blazers" = "POR",
+  "Sacramento Kings" = "SAC",
+  "San Antonio Spurs" = "SAS",
+  "Toronto Raptors" = "TOR",
+  "Utah Jazz" = "UTA",
+  "Washington Wizards" = "WAS"
+)
+
+df <- df %>%
+  mutate(
+    TEAM_A_ABBR = abbr_map[TEAM_A],
+    TEAM_B_ABBR = abbr_map[TEAM_B]
+  )
+
+df <- df %>%
   mutate(
     WINNER = factor(
       WINNER,
@@ -28,20 +65,25 @@ final_series_df <- final_series_df %>%
       labels = c("TEAM_B", "TEAM_A")
     )
   )
+
+# -----------------------------
+# Train/Test Split
+# -----------------------------
+train_final_df <- df %>%
+  filter(season != "2025-26")
+
+test_final_df <- df %>%
+  filter(season == "2025-26") %>%
+  filter(season == "2025-26", SERIES_ID != "New York Knicks vs San Antonio Spurs")
 ```
 
+
+
 ```{r}
-final_series_df <- final_series_df %>% mutate(WINNER = as.factor(WINNER))
+final_series_df <- df %>% mutate(WINNER = as.factor(WINNER))
 final_series_df
 ```
 
-```{r}
-train_final_df <- final_series_df %>%
-  filter(season != "2025-26")
-
-test_final_df <- final_series_df %>%
-  filter(season == "2025-26")
-```
 
 ```{r}
 set.seed(31)
@@ -114,22 +156,7 @@ final_log_fit <- fit(
 )
 ```
 
-```{r}
-best_logreg <- select_best(
-  logreg_fit,
-  metric = "roc_auc"
-)
 
-final_log_wflow <- finalize_workflow(
-  logistic_wflow,
-  best_logreg
-)
-
-final_log_fit <- fit(
-  final_log_wflow,
-  data = train_final_df
-)
-```
 
 ```{r}
 tidy(
@@ -149,20 +176,19 @@ logreg_summary
 ```{r}
 set.seed(31)
 best_logreg_model <- select_best(logreg_fit, metric = "roc_auc")
+best_logreg_model
 ```
-
+The best model is with penalty = 0.1 and mixture = 0.25
 
 ```{r}
 set.seed(31)
 final_logreg_wf <- finalize_workflow(logistic_wflow, best_logreg_model)
 ```
 
-
 ```{r}
 set.seed(31)
 final_logreg_fit <- fit(final_logreg_wf, train_final_df)
 ```
-
 
 ```{r}
 augment(final_logreg_fit, new_data = test_final_df) %>% slice(1:5)
@@ -177,19 +203,280 @@ augment(final_logreg_fit, new_data = test_final_df) %>%
   )
 ```
 ```{r}
-augment(final_logreg_fit, new_data = test_final_df) %>%
-  conf_mat(truth = WINNER, estimate = .pred_class) %>%autoplot(type="heatmap")
+log_reg_preds <- predict(
+  final_logreg_fit,
+  test_final_df,
+  type = "prob"
+) %>%
+  bind_cols(
+    predict(final_logreg_fit, test_final_df)
+  ) %>%
+  bind_cols(test_final_df)
+```
+
+```{r}
+log_reg_preds
+```
+
+```{r}
+log_reg_preds %>%
+  metrics(
+    truth = WINNER,
+    estimate = .pred_class
+  )
+```
+
+```{r}
+log_reg_preds %>%
+  conf_mat(
+    truth = WINNER,
+    estimate = .pred_class
+  )
 ```
 ```{r}
-10/14
+logreg_imp <- tidy(
+  extract_fit_parsnip(final_logreg_fit)
+) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Importance = abs(estimate)
+  ) %>%
+  arrange(desc(Importance))
+
+logreg_imp_top10 <- logreg_imp %>%
+  slice_head(n = 5)
+
+ggplot(logreg_imp_top10, aes(
+  x = reorder(term, Importance),
+  y = Importance
+)) +
+  geom_col(fill = "#2C7FB8") +
+  coord_flip() +
+  labs(
+    title = "Top 5 Most Important Predictors in NBA Playoffs",
+    subtitle = "Elastic Net Logistic Regression (Absolute Coefficient Size)",
+    x = NULL,
+    y = "Absolute Coefficient"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "gray40"),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+
+```{r}
+logreg_preds <- augment(
+  final_logreg_fit,
+  new_data = test_final_df
+)
+
+logreg_preds_table <- logreg_preds %>%
+  mutate(
+    TEAM_A_ABBR = abbr_map[TEAM_A],
+    TEAM_B_ABBR = abbr_map[TEAM_B],
+    Actual_Winner = if_else(WINNER == "TEAM_A", TEAM_A_ABBR, TEAM_B_ABBR),
+    Predicted_Winner = if_else(.pred_class == "TEAM_A", TEAM_A_ABBR, TEAM_B_ABBR),
+    Confidence = if_else(.pred_class == "TEAM_A", .pred_TEAM_A, .pred_TEAM_B),
+    Correct = Actual_Winner == Predicted_Winner
+  ) %>%
+  select(
+    TEAM_A = TEAM_A_ABBR,
+    TEAM_B = TEAM_B_ABBR,
+    Actual_Winner,
+    Predicted_Winner,
+    Confidence,
+    Prob_TEAM_A = .pred_TEAM_A,
+    Prob_TEAM_B = .pred_TEAM_B,
+    SERIES_SCORE,
+    Correct
+  ) %>%
+  arrange(desc(Confidence))
+
+logreg_preds_table %>%
+  mutate(Correct = NULL) %>%
+  kable(
+    digits = 3,
+    caption = "Elastic Net Logistic Regression Predictions Sorted by Confidence (Green = Correct)"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    font_size = 12
+  ) %>%
+  row_spec(
+    which(logreg_preds_table$Correct),
+    background = "#d4f7d4"
+  )
 ```
 
 ```{r}
-augment(final_logreg_fit, new_data = test_final_df) %>%
-  roc_curve(WINNER, .pred_TEAM_B) %>%
-  autoplot()
+finals_obs <- df %>%
+  filter(
+    season == "2025-26",
+    SERIES_ID == "New York Knicks vs San Antonio Spurs"
+  )
 ```
 
+```{r}
+finals_probs <- predict(final_logreg_fit, finals_obs, type = "prob")
+finals_class <- predict(final_logreg_fit, finals_obs)
+
+finals_prediction_table <- finals_obs %>%
+  select(TEAM_A = TEAM_A_ABBR, TEAM_B = TEAM_B_ABBR) %>%
+  bind_cols(finals_class, finals_probs) %>%
+  mutate(
+    Predicted_Winner = if_else(.pred_class == "TEAM_A", TEAM_A, TEAM_B),
+    Confidence = if_else(.pred_class == "TEAM_A", .pred_TEAM_A, .pred_TEAM_B)
+  ) %>%
+  select(
+    TEAM_A, 
+    TEAM_B, 
+    Predicted_Winner, 
+    Confidence, 
+    Prob_TEAM_A = .pred_TEAM_A, 
+    Prob_TEAM_B = .pred_TEAM_B
+  )
+```
+
+```{r}
+# -----------------------------
+# Finals Prediction: Knicks vs Spurs
+# -----------------------------
+
+finals_obs <- df %>%
+  filter(
+    season == "2025-26",
+    SERIES_ID == "New York Knicks vs San Antonio Spurs"
+  )
+
+finals_probs <- predict(
+  final_logreg_fit,
+  finals_obs,
+  type = "prob"
+)
+
+finals_class <- predict(
+  final_logreg_fit,
+  finals_obs
+)
+
+finals_prediction_table <- finals_obs %>%
+  mutate(
+    TEAM_A_DISPLAY = paste0(TEAM_A_ABBR, " (3)"),
+    TEAM_B_DISPLAY = paste0(TEAM_B_ABBR, " (2)")
+  ) %>%
+  select(
+    TEAM_A = TEAM_A_DISPLAY,
+    TEAM_B = TEAM_B_DISPLAY
+  ) %>%
+  bind_cols(
+    finals_class,
+    finals_probs
+  ) %>%
+  mutate(
+    Predicted_Winner = if_else(
+      .pred_class == "TEAM_A",
+      TEAM_A,
+      TEAM_B
+    ),
+    Confidence = if_else(
+      .pred_class == "TEAM_A",
+      .pred_TEAM_A,
+      .pred_TEAM_B
+    )
+  ) %>%
+  select(
+    TEAM_A,
+    TEAM_B,
+    Predicted_Winner,
+    Confidence,
+    Prob_TEAM_A = .pred_TEAM_A,
+    Prob_TEAM_B = .pred_TEAM_B
+  )
+
+finals_prediction_table
+
+```
+
+```{r}
+predictor_vars <- c(
+  "WIN_PCT_DIFF",
+  "NET_RATING_DIFF",
+  "TS_DIFF",
+  "THREE_PT_DIFF",
+  "OFF_RATING_DIFF",
+  "DEF_RATING_DIFF",
+  "EFG_DIFF",
+  "OREB_DIFF",
+  "TOV_DIFF",
+  "PLUS_MINUS_DIFF",
+  "SRS_DIFF",
+  "H2H_TS_PCT_DIFF",
+  "H2H_WIN_PCT_DIFF",
+  "H2H_EFG_PCT_DIFF",
+  "H2H_POINT_DIFF_DIFF"
+)
+
+train_cor_df <- train_final_df %>%
+  mutate(
+    WINNER_NUM = ifelse(WINNER == "TEAM_A", 1, 0)
+  )
+
+predictor_correlations <- tibble(
+  Variable = predictor_vars,
+  Correlation = map_dbl(
+    predictor_vars,
+    ~ cor(
+      train_cor_df[[.x]],
+      train_cor_df$WINNER_NUM,
+      use = "complete.obs"
+    )
+  )
+) %>%
+  arrange(desc(abs(Correlation)))
+
+predictor_correlations
 
 
+
+```
+
+```{r}
+p <- ggplot(
+  top5_correlations,
+  aes(
+    x = reorder(Variable, abs(Correlation)),
+    y = abs(Correlation)
+  )
+) +
+  geom_col(fill = "#2C7FB8") +
+  coord_flip() +
+  labs(
+    title =  "Top 10 Predictors of Playoff Series Winners",
+    x = NULL,
+    y = "Absolute Correlation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "gray40"),
+    panel.grid.major.y = element_blank()
+  )
+
+p
+
+ggsave(
+  "top10_predictors.png",
+  plot = p,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+
+
+
+```
 
