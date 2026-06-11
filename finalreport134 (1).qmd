@@ -1,0 +1,29 @@
+---
+title: "PSTAT 134 Final Project Report"
+format: html
+editor: visual
+---
+
+## Introduction
+
+The NBA playoffs represent the highest level of competition in professional basketball, where teams compete in a series of elimination rounds to determine the league champ. For our analysis we decided to take a look at historical NBA regular-season level data and see how different performance metrics (offensive and defensive) influence a teams' success in the playoffs. With the increasing availability of advanced basketball statistics, it is now more possible than ever to examine which team characteristics are most strongly associated with success in the playoffs. The purpose of this analysis is to identify key factors of success in the playoffs, as well as use those factors to develop a model capable of predicting the winner of a playoff series given the relevant teams' performance in the regular season.
+
+## Methods
+
+### Exploratory Data Analysis
+
+To identify which regular season team statistics were most strongly associated with playoff success, an exploratory data analysis (EDA) was conducted using data from NBA playoff teams over the ten most recent completed seasons (2015-2024). A ten-year period was selected to provide a sufficiently large sample size while maintaining relevance to the modern NBA. The style of play in professional basketball has evolved considerably over time, particularly with the increased emphasis on three-point shooting and offensive efficiency. Restricting the analysis to the past decade helps ensure that observed relationships reflect contemporary trends rather than outdated strategies.
+
+Ten regular season team performance metrics were selected based on their prevalence in basketball analytics literature and their potential relationship with playoff success. These metrics included Win Percentage (Win%), Net Rating, Offensive Rating, Defensive Rating, Simple Rating System (SRS), Effective Field Goal Percentage (eFG%), True Shooting Percentage (TS%), Three-point Attempt Rate (3PAr), Turnover Percentage (TOV%), and Offensive Rebound Percentage (ORB%).
+
+Playoff success was measured using playoff win percentage. For each metric, the Pearson correlation coefficient was calculated to quantify the strength and direction of the linear relationship between the regular season statistic and playoff win percentage. Pearson correlation was chosen because it provides an interpretable measure of association between continuous variable and serves as a useful first step in identifying potentially important predictors.
+
+## Results
+
+## Conclusion
+
+This project examined whether regular-season team statistics could be used to predict NBA playoff success and playoff series winners. Through exploratory data analysis, we found that season-long measures of team quality were consistently more predictive of playoff performance than head-to-head matchup statistics. In particular, win percentage, true shooting percentage, effective field goal percentage, net rating, and offensive rating emerged as the strongest indicators of playoff success.
+
+To evaluate the predictive power of these metrics, we developed both Random Forest and Elastic Net Logistic Regression models using matchup-based feature differences between teams. Both models demonstrated strong predictive performance, with the Logistic Regression model achieving an accuracy of 71.4% and the Random Forest model achieving an ROC AUC of 88.9%. Although the Logistic Regression model produced slightly higher accuracy, the Random Forest model achieved superior discrimination ability as measured by AUC, making it the stronger overall model for this application.
+
+Overall, the results suggest that advanced efficiency metrics and season-long team performance provide valuable information for forecasting NBA playoff outcomes. While no model can perfectly predict the uncertainty of postseason basketball, our findings demonstrate that regular-season statistics can be used to successfully identify playoff contenders and predict series winners with a relatively high degree of accuracy. Future research could incorporate player-level data, injury information, betting market odds, or game-by-game playoff performance metrics to further improve predictive accuracy and better capture factors that influence playoff success.
