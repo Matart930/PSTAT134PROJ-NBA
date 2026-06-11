@@ -22,21 +22,77 @@ Playoff success was measured using playoff win percentage. For each metric, the 
 
 ## Results
 
-```{r, warning=FALSE, message=FALSE}
-library(dplyr)
-library(kableExtra)
-model_compare <- data.frame(
-  model = c("Logistic Regression", "Random Forest"),
-  accuracy = c(0.714, 0.643),
-  kappa = c(0.472, 0.364),
-  roc_auc = c(0.844, 0.889)
+### Model Performance and Evaluation
+
+To determine the most robust predictive framework for the NBA playoffs, we evaluated both an Elastic Net Logistic Regression and a Random Forest classifier. Performance was assessed using accuracy and the Area Under the Receiver Operating Characteristic curve (`roc_auc`). Because playoff series outcomes are fundamentally driven by probabilistic edges where a team must win four out of seven games, we prioritized `roc_auc` to measure how effectively each model separates historical winners from losers across varying decision thresholds.
+
+The Random Forest model demonstrated superior predictive power, achieving a higher `roc_auc` than the Elastic Net Logistic Regression. While logistic regression struggles with the highly correlated, multi-collinear nature of team basketball metrics, the Random Forest model naturally accommodated non-linear relationships and captured distinct playoff intensity thresholds.
+
+```{r}
+#| label: tbl-model-compare
+#| tbl-cap: "Model Performance Comparison"
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(gt)
+library(ggplot2)
+
+model_compare <- tibble(
+  Model = c("Elastic Net Logistic Regression", "Random Forest"),
+  Accuracy = c(0.714, 0.643),  
+  `ROC AUC` = c(0.844, 0.889)  
 )
 
+model_compare %>%
+  gt() %>%
+  tab_header(
+    title = "Postseason Predictive Performance",
+    subtitle = "Comparison of classification frameworks"
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(
+      columns = c(`ROC AUC`),
+      rows = Model == "Random Forest"
+    )
+  ) %>%
+  opt_interactive(active = FALSE)
+
+model_compare %>%
+  pivot_longer(cols = c(Accuracy, `ROC AUC`), names_to = "Metric", values_to = "Value") %>%
+  ggplot(aes(x = Model, y = Value, fill = Model)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  facet_wrap(~Metric) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  labs(y = "Score", x = NULL, title = "Model Performance Breakdown")
+```
+
+### Feature Importance
+
+![](logreg_imp_top10.png) 
+
+As shown by the plot, the logistic regression model selected only eight of the predictors included in the recipe. Among the top five of those include: Win%, True-shooting%, Effective Field-Goal%, and Offensive/Net rating (all of which are differentials between Team A and Team B). This means that the model prioritizes teams with high regular season win/loss records (to be expected), as well as efficient shooting, more so than it does defensive metrics. These results highlight the distinct shift the NBA has taken in the modern era, putting a heavy importance on a teams' ability to score rather than defend. Interestingly enough, the model also selected the head-to-head Win% differential statistic, implying that a teams' regular season win/loss record against a specific team yields predictive power in the outcome of a series matchup in the playoffs.
+
+![](rf_imp_top10.png)
+
+The Random Forest yields somewhat similar relevant features. Among the top five of those include: Win%, Effective Field-Goal%, True-Shooting%, Plus-Minus, and Net rating (once again, all of which are differentials between Team A and B). We can see that both models yield the same top three predictors yet in slight different orders; the random forest model prioritizes Effective Field-Goal% over True-Shooting%. Although these differences are slight, this means that the logistic regression model puts a heavier emphasis on points generated via the free-throw (included in ts%), than the random forest model does.
+
+### Predictions on Test Data (2026 Playoffs) - Random Forest
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(dplyr)
+library(kableExtra)
+
 rf_series_predictions <- read.csv("rf_series_predictions.csv")
-lr_series_predictions <- read.csv("lr_series_predictions.csv")
 
 rf_finals_predictions <- read.csv("rf_finals_predictions.csv")
-lr_finals_predictions <- read.csv("lr_finals_predictions.csv")
 
 rf_series_predictions %>%
   mutate(Correct = NULL, Confidence = NULL) %>%  # hide flag column in display
@@ -53,23 +109,11 @@ rf_series_predictions %>%
     which(rf_series_predictions$Correct),
     background = "#d4f7d4"  # light green
   )
+```
 
-lr_series_predictions %>%
-  mutate(Correct = NULL, Confidence = NULL) %>%  # hide flag column in display
-  kable(
-    digits = 3,
-    caption = "LR NBA Playoff Predictions Sorted by Confidence (Green = Correct)"
-  ) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
-    full_width = FALSE,
-    font_size = 12
-  ) %>%
-  row_spec(
-    which(lr_series_predictions$Correct),
-    background = "#d4f7d4"  # light green
-  )
+As shown by the table above and as indicated previously, the Random Forest Model has a test-accuracy of `64.3%`, which corresponded to nine correct predictions out of the 14 completed series of the 2026 playoffs. The table, sorted by model confidence, shows that the series in which the model was most confident in its outcome correlated to lopsided real-life results in the playoffs. This includes the Knicks sweep against the 76ers (in which the model predicted their win probability at 91.5%), the Spurs 4-1 victory over the Trailblazers (87.6%), and the Thunder's sweep against the Suns (81.1%). One of the most interesting correct series predictions from the random forest model was the Cavaliers over the Pistons in the Eastern Conference Semifinals. It is one of only three predictions in which the model predicted the lower seeded team (indicated by parentheses), to take the series, and it did so with relatively high confidence (60.4%). This prediction contrasted real-world trading odds, which favored the pistons at roughly 57%. For fun, the table below shows our models' prediction and confidence for Knicks Spurs NBA finals matchup.
 
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
 rf_finals_predictions %>%
   kable(
     digits = 3,
@@ -86,25 +130,7 @@ rf_finals_predictions %>%
     background = "#FFF2CC" 
   )
 
-lr_finals_predictions %>%
-  kable(
-    digits = 3,
-    caption = "2026 NBA Finals: Logistic Regression Model Prediction"
-  ) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
-    full_width = FALSE,
-    font_size = 13
-  ) %>%
-  row_spec(
-    1, 
-    bold = TRUE, 
-    background = "#FFF2CC" 
-  )
 ```
 
-![](rf_imp_top10.png)
-
-![](logreg_imp_top10.png)
 
 ## Conclusion
