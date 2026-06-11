@@ -134,3 +134,9 @@ rf_finals_predictions %>%
 
 
 ## Conclusion
+
+This project examined whether regular-season team statistics could be used to predict NBA playoff success and playoff series winners. Through exploratory data analysis, we found that season-long measures of team quality were consistently more predictive of playoff performance than head-to-head matchup statistics. In particular, win percentage, true shooting percentage, effective field goal percentage, net rating, and offensive rating emerged as the strongest indicators of playoff success.
+
+To evaluate the predictive power of these metrics, we developed both Random Forest and Elastic Net Logistic Regression models using matchup-based feature differences between teams. Both models demonstrated strong predictive performance, with the Logistic Regression model achieving an accuracy of 71.4% and the Random Forest model achieving an ROC AUC of 88.9%. Although the Logistic Regression model produced slightly higher accuracy, the Random Forest model achieved superior discrimination ability as measured by AUC, making it the stronger overall model for this application.
+
+Overall, the results suggest that advanced efficiency metrics and season-long team performance provide valuable information for forecasting NBA playoff outcomes. While no model can perfectly predict the uncertainty of postseason basketball, our findings demonstrate that regular-season statistics can be used to successfully identify playoff contenders and predict series winners with a relatively high degree of accuracy. Future research could incorporate player-level data, injury information, betting market odds, or game-by-game playoff performance metrics to further improve predictive accuracy and better capture factors that influence playoff success.
