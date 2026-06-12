@@ -22,7 +22,7 @@ Rather than using raw team statistics, feature engineering was performed to crea
 
 Pearson correlation coefficients were then calculated to quantify the linear relationship between each engineered feature and playoff series outcomes. This was done in two stages: first examining raw regular season metrics against playoff win percentage, then evaluating matchup-difference variables against series winners. Pearson correlation was chosen for its interpretability and its utility as a first step in identifying promising predictors for downstream modeling.
 
-![](top10_predictors.png)
+![](tables-images/top10_predictors.png)
 
 As shown by the chart, the top five characteristics in terms of pearson correlation to playoff series deciders include: Win%, Effective Field Goal%, True Shooting%, Net rating, and Plus-Minus (all of which are differential statistics between two teams). All of these metrics are somewhat similar in the sense that they describe a teams' offensive capabilities and their ability to score (Net rating describes both offensive and defensive skill). The Simple Rating System (SRS) metric is an advanced statistic that measures a teams' overall strength by combining their average point differential (Plus-Minus), with their Strength of Schedule (a metric that takes into account the average rating of each opponent faced). As shown by the plot, the Plus-Minus and SRS differential characteristics posses very similar pearson correlation values, indicating that the Strength of Schedule metric, adds little predictive power to a playoff series outcome.
 
@@ -120,11 +120,11 @@ model_compare %>%
 
 ### Feature Importance
 
-![](logreg_imp_top10.png)
+![](tables-images/logreg_imp_top10.png)
 
 As shown by the plot, the logistic regression model selected only eight of the predictors included in the recipe. Among the top five of those include: Win%, True-shooting%, Effective Field-Goal%, and Offensive/Net rating (all of which are differentials between Team A and Team B). This means that the model prioritizes teams with high regular season win/loss records (to be expected), as well as efficient shooting, more so than it does defensive metrics. These results highlight the distinct shift the NBA has taken in the modern era, putting a heavy importance on a teams' ability to score rather than defend. Interestingly enough, the model also selected the head-to-head Win% differential statistic, implying that a teams' regular season win/loss record against a specific team yields predictive power in the outcome of a series matchup in the playoffs.
 
-![](rf_imp_top10.png)
+![](tables-images/rf_imp_top10.png)
 
 The Random Forest yields somewhat similar relevant features. Among the top five of those include: Win%, Effective Field-Goal%, True-Shooting%, Plus-Minus, and Net rating (once again, all of which are differentials between Team A and B). We can see that both models yield the same top three predictors yet in slight different orders; the random forest model prioritizes Effective Field-Goal% over True-Shooting%. Although these differences are slight, this means that the logistic regression model puts a heavier emphasis on points generated via the free-throw (included in ts%), than the random forest model does.
 
@@ -134,9 +134,9 @@ The Random Forest yields somewhat similar relevant features. Among the top five 
 library(dplyr)
 library(kableExtra)
 
-rf_series_predictions <- read.csv("rf_series_predictions.csv")
+rf_series_predictions <- read.csv("tables-images/rf_series_predictions.csv")
 
-rf_finals_predictions <- read.csv("rf_finals_predictions.csv")
+rf_finals_predictions <- read.csv("tables-images/rf_finals_predictions.csv")
 
 rf_series_predictions %>%
   mutate(Correct = NULL, Confidence = NULL) %>%  # hide flag column in display

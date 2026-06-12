@@ -111,7 +111,7 @@ window.Quarto = {
 <section id="correlation-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="correlation-analysis">Correlation Analysis</h3>
 <p>Pearson correlation coefficients were then calculated to quantify the linear relationship between each engineered feature and playoff series outcomes. This was done in two stages: first examining raw regular season metrics against playoff win percentage, then evaluating matchup-difference variables against series winners. Pearson correlation was chosen for its interpretability and its utility as a first step in identifying promising predictors for downstream modeling.</p>
-<p><img src="top10_predictors.png" class="img-fluid"></p>
+<p><img src="tables-images/top10_predictors.png" class="img-fluid"></p>
 <p>As shown by the chart, the top five characteristics in terms of pearson correlation to playoff series deciders include: Win%, Effective Field Goal%, True Shooting%, Net rating, and Plus-Minus (all of which are differential statistics between two teams). All of these metrics are somewhat similar in the sense that they describe a teams’ offensive capabilities and their ability to score (Net rating describes both offensive and defensive skill). The Simple Rating System (SRS) metric is an advanced statistic that measures a teams’ overall strength by combining their average point differential (Plus-Minus), with their Strength of Schedule (a metric that takes into account the average rating of each opponent faced). As shown by the plot, the Plus-Minus and SRS differential characteristics posses very similar pearson correlation values, indicating that the Strength of Schedule metric, adds little predictive power to a playoff series outcome.</p>
 </section>
 <section id="chosen-machine-learning-models" class="level3">
@@ -162,23 +162,23 @@ Table&nbsp;1: Model Performance Comparison
 </figcaption>
 <div aria-describedby="tbl-model-compare-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div id="cdjvnyatjb" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#cdjvnyatjb table {
+<div id="oxldwhgkan" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#oxldwhgkan table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#cdjvnyatjb thead, #cdjvnyatjb tbody, #cdjvnyatjb tfoot, #cdjvnyatjb tr, #cdjvnyatjb td, #cdjvnyatjb th {
+#oxldwhgkan thead, #oxldwhgkan tbody, #oxldwhgkan tfoot, #oxldwhgkan tr, #oxldwhgkan td, #oxldwhgkan th {
   border-style: none;
 }
 
-#cdjvnyatjb p {
+#oxldwhgkan p {
   margin: 0;
   padding: 0;
 }
 
-#cdjvnyatjb .gt_table {
+#oxldwhgkan .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -204,12 +204,12 @@ Table&nbsp;1: Model Performance Comparison
   border-left-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_caption {
+#oxldwhgkan .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#cdjvnyatjb .gt_title {
+#oxldwhgkan .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -221,7 +221,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-width: 0;
 }
 
-#cdjvnyatjb .gt_subtitle {
+#oxldwhgkan .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -233,7 +233,7 @@ Table&nbsp;1: Model Performance Comparison
   border-top-width: 0;
 }
 
-#cdjvnyatjb .gt_heading {
+#oxldwhgkan .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -245,13 +245,13 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_bottom_border {
+#oxldwhgkan .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_col_headings {
+#oxldwhgkan .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -266,7 +266,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_col_heading {
+#oxldwhgkan .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -286,7 +286,7 @@ Table&nbsp;1: Model Performance Comparison
   overflow-x: hidden;
 }
 
-#cdjvnyatjb .gt_column_spanner_outer {
+#oxldwhgkan .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -298,15 +298,15 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 4px;
 }
 
-#cdjvnyatjb .gt_column_spanner_outer:first-child {
+#oxldwhgkan .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#cdjvnyatjb .gt_column_spanner_outer:last-child {
+#oxldwhgkan .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#cdjvnyatjb .gt_column_spanner {
+#oxldwhgkan .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -318,11 +318,11 @@ Table&nbsp;1: Model Performance Comparison
   width: 100%;
 }
 
-#cdjvnyatjb .gt_spanner_row {
+#oxldwhgkan .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#cdjvnyatjb .gt_group_heading {
+#oxldwhgkan .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -348,7 +348,7 @@ Table&nbsp;1: Model Performance Comparison
   text-align: left;
 }
 
-#cdjvnyatjb .gt_empty_group_heading {
+#oxldwhgkan .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -363,15 +363,15 @@ Table&nbsp;1: Model Performance Comparison
   vertical-align: middle;
 }
 
-#cdjvnyatjb .gt_from_md > :first-child {
+#oxldwhgkan .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#cdjvnyatjb .gt_from_md > :last-child {
+#oxldwhgkan .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#cdjvnyatjb .gt_row {
+#oxldwhgkan .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -390,7 +390,7 @@ Table&nbsp;1: Model Performance Comparison
   overflow-x: hidden;
 }
 
-#cdjvnyatjb .gt_stub {
+#oxldwhgkan .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -403,7 +403,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#cdjvnyatjb .gt_stub_row_group {
+#oxldwhgkan .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -417,15 +417,15 @@ Table&nbsp;1: Model Performance Comparison
   vertical-align: top;
 }
 
-#cdjvnyatjb .gt_row_group_first td {
+#oxldwhgkan .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#cdjvnyatjb .gt_row_group_first th {
+#oxldwhgkan .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#cdjvnyatjb .gt_summary_row {
+#oxldwhgkan .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -435,16 +435,16 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#cdjvnyatjb .gt_first_summary_row {
+#oxldwhgkan .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_first_summary_row.thick {
+#oxldwhgkan .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#cdjvnyatjb .gt_last_summary_row {
+#oxldwhgkan .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -454,7 +454,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_grand_summary_row {
+#oxldwhgkan .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -464,7 +464,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#cdjvnyatjb .gt_first_grand_summary_row {
+#oxldwhgkan .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -474,7 +474,7 @@ Table&nbsp;1: Model Performance Comparison
   border-top-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_last_grand_summary_row_top {
+#oxldwhgkan .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -484,11 +484,11 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_striped {
+#oxldwhgkan .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#cdjvnyatjb .gt_table_body {
+#oxldwhgkan .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -497,7 +497,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_footnotes {
+#oxldwhgkan .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -511,7 +511,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_footnote {
+#oxldwhgkan .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -520,7 +520,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#cdjvnyatjb .gt_sourcenotes {
+#oxldwhgkan .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -534,7 +534,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#cdjvnyatjb .gt_sourcenote {
+#oxldwhgkan .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -542,72 +542,72 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#cdjvnyatjb .gt_left {
+#oxldwhgkan .gt_left {
   text-align: left;
 }
 
-#cdjvnyatjb .gt_center {
+#oxldwhgkan .gt_center {
   text-align: center;
 }
 
-#cdjvnyatjb .gt_right {
+#oxldwhgkan .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#cdjvnyatjb .gt_font_normal {
+#oxldwhgkan .gt_font_normal {
   font-weight: normal;
 }
 
-#cdjvnyatjb .gt_font_bold {
+#oxldwhgkan .gt_font_bold {
   font-weight: bold;
 }
 
-#cdjvnyatjb .gt_font_italic {
+#oxldwhgkan .gt_font_italic {
   font-style: italic;
 }
 
-#cdjvnyatjb .gt_super {
+#oxldwhgkan .gt_super {
   font-size: 65%;
 }
 
-#cdjvnyatjb .gt_footnote_marks {
+#oxldwhgkan .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#cdjvnyatjb .gt_asterisk {
+#oxldwhgkan .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#cdjvnyatjb .gt_indent_1 {
+#oxldwhgkan .gt_indent_1 {
   text-indent: 5px;
 }
 
-#cdjvnyatjb .gt_indent_2 {
+#oxldwhgkan .gt_indent_2 {
   text-indent: 10px;
 }
 
-#cdjvnyatjb .gt_indent_3 {
+#oxldwhgkan .gt_indent_3 {
   text-indent: 15px;
 }
 
-#cdjvnyatjb .gt_indent_4 {
+#oxldwhgkan .gt_indent_4 {
   text-indent: 20px;
 }
 
-#cdjvnyatjb .gt_indent_5 {
+#oxldwhgkan .gt_indent_5 {
   text-indent: 25px;
 }
 
-#cdjvnyatjb .katex-display {
+#oxldwhgkan .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#cdjvnyatjb div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#oxldwhgkan div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -656,9 +656,9 @@ Table&nbsp;1: Model Performance Comparison
 </section>
 <section id="feature-importance" class="level3">
 <h3 class="anchored" data-anchor-id="feature-importance">Feature Importance</h3>
-<p><img src="logreg_imp_top10.png" class="img-fluid"></p>
+<p><img src="tables-images/logreg_imp_top10.png" class="img-fluid"></p>
 <p>As shown by the plot, the logistic regression model selected only eight of the predictors included in the recipe. Among the top five of those include: Win%, True-shooting%, Effective Field-Goal%, and Offensive/Net rating (all of which are differentials between Team A and Team B). This means that the model prioritizes teams with high regular season win/loss records (to be expected), as well as efficient shooting, more so than it does defensive metrics. These results highlight the distinct shift the NBA has taken in the modern era, putting a heavy importance on a teams’ ability to score rather than defend. Interestingly enough, the model also selected the head-to-head Win% differential statistic, implying that a teams’ regular season win/loss record against a specific team yields predictive power in the outcome of a series matchup in the playoffs.</p>
-<p><img src="rf_imp_top10.png" class="img-fluid"></p>
+<p><img src="tables-images/rf_imp_top10.png" class="img-fluid"></p>
 <p>The Random Forest yields somewhat similar relevant features. Among the top five of those include: Win%, Effective Field-Goal%, True-Shooting%, Plus-Minus, and Net rating (once again, all of which are differentials between Team A and B). We can see that both models yield the same top three predictors yet in slight different orders; the random forest model prioritizes Effective Field-Goal% over True-Shooting%. Although these differences are slight, this means that the logistic regression model puts a heavier emphasis on points generated via the free-throw (included in ts%), than the random forest model does.</p>
 </section>
 <section id="predictions-on-test-data-2026-playoffs---random-forest" class="level3">
