@@ -33,11 +33,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="finalreport134_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="finalreport134_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="finalreport134_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="finalreport134_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="finalreport134_files/libs/bootstrap/bootstrap-81267100e462c21b3d6c0d5bf76a3417.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="finalreport134_files/libs/kePrint-0.0.1/kePrint.js"></script>
-
 <link href="finalreport134_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
-
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -98,15 +96,15 @@ window.Quarto = {
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>The NBA playoffs represent the highest level of competition in professional basketball, where teams compete in a series of elimination rounds to determine the league champ. For our analysis we decided to take a look at historical NBA regular-season level data and see how different performance metrics (offensive and defensive) influence a teams’ success in the playoffs. With the increasing availability of advanced basketball statistics, it is now more possible than ever to examine which team characteristics are most strongly associated with success in the playoffs. The purpose of this analysis is to identify key factors of success in the playoffs, as well as use those factors to develop a model capable of predicting the winner of a playoff series given the relevant teams’ performance in the regular season.</p>
+<p>The NBA playoffs represent the highest level of competition in professional basketball, where teams compete in a series of elimination rounds to determine the league champ. For our project, we used the python nba_api package and the LeagueDashTeamStats and LeagueGameLog endpoints to collect the data for our analysis. We examined historical NBA regular-season level data to see how different performance metrics (offensive and defensive) influence a teams’ success in the playoffs. With the increasing availability of advanced basketball statistics, it is now more possible than ever to examine which team characteristics are most strongly associated with success in the playoffs. The purpose of this analysis is to identify key factors of success in the playoffs, as well as use those factors to develop a model capable of predicting the winner of a playoff series given the relevant teams’ performance in the regular season.</p>
 </section>
 <section id="methods" class="level2">
 <h2 class="anchored" data-anchor-id="methods">Methods</h2>
 <section id="exploratory-data-analysis-feature-engineering" class="level3">
 <h3 class="anchored" data-anchor-id="exploratory-data-analysis-feature-engineering">Exploratory Data Analysis / Feature Engineering</h3>
-<p>To identify which regular season team statistics were most strongly associated with playoff success, an exploratory data analysis was conducted using NBA playoff team data from the 2015-16 through 2024-25 seasons. This ten-year window was selected to provide a sufficient sample size while remaining relevant to the modern era of NBA play, particularly the increased emphasis on three-point shooting and offensive efficiency.</p>
+<p>To identify which regular season team statistics were most strongly associated with playoff success, an exploratory data analysis was conducted using NBA playoff data collected through the Python nba_api package. Data were retrieved from the 2015-16 through 2024-25 seasons for exploratory analysis and model training, while the 2025-26 season was for our testing datatset. This ten-year window was selected for our exploratory analysis and model training to provide a sufficient sample size while remaining relevant to the modern era of NBA play, particularly the increased emphasis on three-point shooting and offensive efficiency. Two API endpoints were used: the LeagueDashTeamStats endpoint which obtained team-level regular season and playoff metrics, like Win Percentage and Playoff Win Percentage, and the LeagueGameLog endpoint which was used to identify playoff series winners and assist with feature engineering.</p>
 <p>Ten regular season team performance metrics were selected based on their prevalence in basketball analytics literature: Win Percentage, Net Rating, Offensive Rating, Defensive Rating, Simple Rating System (SRS), Effective Field Goal Percentage (eFG%), True Shooting Percentage (TS%), Three-Point Attempt Rate (3PAr), Turnover Percentage (TOV%), and Offensive Rebound Percentage (ORB%).</p>
-<p>Rather than using raw team statistics, feature engineering was performed to create matchup-level variables by computing the difference between the two competing teams for each metric. For example, instead of using TS% for a single team, TS% differential was used to capture the relative efficiency advantage between opponents. Additional features were engineered including Strength of Schedule, Simple Rating System, and head-to-head metrics such as win percentage and shooting efficiency differentials.</p>
+<p>Rather than using raw team statistics, feature engineering was performed to create matchup-level variables by computing the difference between the two competing teams for each metric. For example, instead of using TS% for a single team, TS% differential was used to capture the relative efficiency advantage between opponents. A positive value indicated that Team A outperformed Team B in that metric during the regular season, while a negative value indicated the opposite. Additional features were engineered including Strength of Schedule, Simple Rating System, and head-to-head matchup statistics based on games played between the two teams during the regular season such as win percentage and shooting efficiency differentials. The resulting dataset contained regular season team statistics, playoff outcomes, and feature-engineered matchup variables, with each observation representing a single playoff series.</p>
 </section>
 <section id="correlation-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="correlation-analysis">Correlation Analysis</h3>
@@ -162,23 +160,23 @@ Table&nbsp;1: Model Performance Comparison
 </figcaption>
 <div aria-describedby="tbl-model-compare-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div id="oxldwhgkan" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#oxldwhgkan table {
+<div id="wxbxrmtrwy" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#wxbxrmtrwy table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#oxldwhgkan thead, #oxldwhgkan tbody, #oxldwhgkan tfoot, #oxldwhgkan tr, #oxldwhgkan td, #oxldwhgkan th {
+#wxbxrmtrwy thead, #wxbxrmtrwy tbody, #wxbxrmtrwy tfoot, #wxbxrmtrwy tr, #wxbxrmtrwy td, #wxbxrmtrwy th {
   border-style: none;
 }
 
-#oxldwhgkan p {
+#wxbxrmtrwy p {
   margin: 0;
   padding: 0;
 }
 
-#oxldwhgkan .gt_table {
+#wxbxrmtrwy .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -204,12 +202,12 @@ Table&nbsp;1: Model Performance Comparison
   border-left-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_caption {
+#wxbxrmtrwy .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#oxldwhgkan .gt_title {
+#wxbxrmtrwy .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -221,7 +219,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-width: 0;
 }
 
-#oxldwhgkan .gt_subtitle {
+#wxbxrmtrwy .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -233,7 +231,7 @@ Table&nbsp;1: Model Performance Comparison
   border-top-width: 0;
 }
 
-#oxldwhgkan .gt_heading {
+#wxbxrmtrwy .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -245,13 +243,13 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_bottom_border {
+#wxbxrmtrwy .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_col_headings {
+#wxbxrmtrwy .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -266,7 +264,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_col_heading {
+#wxbxrmtrwy .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -286,7 +284,7 @@ Table&nbsp;1: Model Performance Comparison
   overflow-x: hidden;
 }
 
-#oxldwhgkan .gt_column_spanner_outer {
+#wxbxrmtrwy .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -298,15 +296,15 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 4px;
 }
 
-#oxldwhgkan .gt_column_spanner_outer:first-child {
+#wxbxrmtrwy .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#oxldwhgkan .gt_column_spanner_outer:last-child {
+#wxbxrmtrwy .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#oxldwhgkan .gt_column_spanner {
+#wxbxrmtrwy .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -318,11 +316,11 @@ Table&nbsp;1: Model Performance Comparison
   width: 100%;
 }
 
-#oxldwhgkan .gt_spanner_row {
+#wxbxrmtrwy .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#oxldwhgkan .gt_group_heading {
+#wxbxrmtrwy .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -348,7 +346,7 @@ Table&nbsp;1: Model Performance Comparison
   text-align: left;
 }
 
-#oxldwhgkan .gt_empty_group_heading {
+#wxbxrmtrwy .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -363,15 +361,15 @@ Table&nbsp;1: Model Performance Comparison
   vertical-align: middle;
 }
 
-#oxldwhgkan .gt_from_md > :first-child {
+#wxbxrmtrwy .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#oxldwhgkan .gt_from_md > :last-child {
+#wxbxrmtrwy .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#oxldwhgkan .gt_row {
+#wxbxrmtrwy .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -390,7 +388,7 @@ Table&nbsp;1: Model Performance Comparison
   overflow-x: hidden;
 }
 
-#oxldwhgkan .gt_stub {
+#wxbxrmtrwy .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -403,7 +401,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#oxldwhgkan .gt_stub_row_group {
+#wxbxrmtrwy .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -417,15 +415,15 @@ Table&nbsp;1: Model Performance Comparison
   vertical-align: top;
 }
 
-#oxldwhgkan .gt_row_group_first td {
+#wxbxrmtrwy .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#oxldwhgkan .gt_row_group_first th {
+#wxbxrmtrwy .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#oxldwhgkan .gt_summary_row {
+#wxbxrmtrwy .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -435,16 +433,16 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#oxldwhgkan .gt_first_summary_row {
+#wxbxrmtrwy .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_first_summary_row.thick {
+#wxbxrmtrwy .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#oxldwhgkan .gt_last_summary_row {
+#wxbxrmtrwy .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -454,7 +452,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_grand_summary_row {
+#wxbxrmtrwy .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -464,7 +462,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#oxldwhgkan .gt_first_grand_summary_row {
+#wxbxrmtrwy .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -474,7 +472,7 @@ Table&nbsp;1: Model Performance Comparison
   border-top-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_last_grand_summary_row_top {
+#wxbxrmtrwy .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -484,11 +482,11 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_striped {
+#wxbxrmtrwy .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#oxldwhgkan .gt_table_body {
+#wxbxrmtrwy .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -497,7 +495,7 @@ Table&nbsp;1: Model Performance Comparison
   border-bottom-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_footnotes {
+#wxbxrmtrwy .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -511,7 +509,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_footnote {
+#wxbxrmtrwy .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -520,7 +518,7 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#oxldwhgkan .gt_sourcenotes {
+#wxbxrmtrwy .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -534,7 +532,7 @@ Table&nbsp;1: Model Performance Comparison
   border-right-color: #D3D3D3;
 }
 
-#oxldwhgkan .gt_sourcenote {
+#wxbxrmtrwy .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -542,72 +540,72 @@ Table&nbsp;1: Model Performance Comparison
   padding-right: 5px;
 }
 
-#oxldwhgkan .gt_left {
+#wxbxrmtrwy .gt_left {
   text-align: left;
 }
 
-#oxldwhgkan .gt_center {
+#wxbxrmtrwy .gt_center {
   text-align: center;
 }
 
-#oxldwhgkan .gt_right {
+#wxbxrmtrwy .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#oxldwhgkan .gt_font_normal {
+#wxbxrmtrwy .gt_font_normal {
   font-weight: normal;
 }
 
-#oxldwhgkan .gt_font_bold {
+#wxbxrmtrwy .gt_font_bold {
   font-weight: bold;
 }
 
-#oxldwhgkan .gt_font_italic {
+#wxbxrmtrwy .gt_font_italic {
   font-style: italic;
 }
 
-#oxldwhgkan .gt_super {
+#wxbxrmtrwy .gt_super {
   font-size: 65%;
 }
 
-#oxldwhgkan .gt_footnote_marks {
+#wxbxrmtrwy .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#oxldwhgkan .gt_asterisk {
+#wxbxrmtrwy .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#oxldwhgkan .gt_indent_1 {
+#wxbxrmtrwy .gt_indent_1 {
   text-indent: 5px;
 }
 
-#oxldwhgkan .gt_indent_2 {
+#wxbxrmtrwy .gt_indent_2 {
   text-indent: 10px;
 }
 
-#oxldwhgkan .gt_indent_3 {
+#wxbxrmtrwy .gt_indent_3 {
   text-indent: 15px;
 }
 
-#oxldwhgkan .gt_indent_4 {
+#wxbxrmtrwy .gt_indent_4 {
   text-indent: 20px;
 }
 
-#oxldwhgkan .gt_indent_5 {
+#wxbxrmtrwy .gt_indent_5 {
   text-indent: 25px;
 }
 
-#oxldwhgkan .katex-display {
+#wxbxrmtrwy .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#oxldwhgkan div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#wxbxrmtrwy div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
