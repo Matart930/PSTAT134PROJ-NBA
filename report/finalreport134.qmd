@@ -10,15 +10,59 @@ The NBA playoffs represent the highest level of competition in professional bask
 
 ## Methods
 
-### Exploratory Data Analysis
+### Exploratory Data Analysis / Feature Engineering
 
-To identify which regular season team statistics were most strongly associated with playoff success, an exploratory data analysis (EDA) was conducted using data from NBA playoff teams over the ten most recent completed seasons (2015-2024). A ten-year period was selected to provide a sufficiently large sample size while maintaining relevance to the modern NBA. The style of play in professional basketball has evolved considerably over time, particularly with the increased emphasis on three-point shooting and offensive efficiency. Restricting the analysis to the past decade helps ensure that observed relationships reflect contemporary trends rather than outdated strategies.
+To identify which regular season team statistics were most strongly associated with playoff success, an exploratory data analysis was conducted using NBA playoff team data from the 2015-16 through 2024-25 seasons. This ten-year window was selected to provide a sufficient sample size while remaining relevant to the modern era of NBA play, particularly the increased emphasis on three-point shooting and offensive efficiency.
 
-Ten regular season team performance metrics were selected based on their prevalence in basketball analytics literature and their potential relationship with playoff success. These metrics included Win Percentage (Win%), Net Rating, Offensive Rating, Defensive Rating, Simple Rating System (SRS), Effective Field Goal Percentage (eFG%), True Shooting Percentage (TS%), Three-point Attempt Rate (3PAr), Turnover Percentage (TOV%), and Offensive Rebound Percentage (ORB%).
+Ten regular season team performance metrics were selected based on their prevalence in basketball analytics literature: Win Percentage, Net Rating, Offensive Rating, Defensive Rating, Simple Rating System (SRS), Effective Field Goal Percentage (eFG%), True Shooting Percentage (TS%), Three-Point Attempt Rate (3PAr), Turnover Percentage (TOV%), and Offensive Rebound Percentage (ORB%).
 
-Playoff success was measured using playoff win percentage. For each metric, the Pearson correlation coefficient was calculated to quantify the strength and direction of the linear relationship between the regular season statistic and playoff win percentage. Pearson correlation was chosen because it provides an interpretable measure of association between continuous variable and serves as a useful first step in identifying potentially important predictors.
+Rather than using raw team statistics, feature engineering was performed to create matchup-level variables by computing the difference between the two competing teams for each metric. For example, instead of using TS% for a single team, TS% differential was used to capture the relative efficiency advantage between opponents. Additional features were engineered including Strength of Schedule, Simple Rating System, and head-to-head metrics such as win percentage and shooting efficiency differentials.
+
+### Correlation Analysis
+
+Pearson correlation coefficients were then calculated to quantify the linear relationship between each engineered feature and playoff series outcomes. This was done in two stages: first examining raw regular season metrics against playoff win percentage, then evaluating matchup-difference variables against series winners. Pearson correlation was chosen for its interpretability and its utility as a first step in identifying promising predictors for downstream modeling.
 
 ![](top10_predictors.png)
+
+As shown by the chart, the top five characteristics in terms of pearson correlation to playoff series deciders include: Win%, Effective Field Goal%, True Shooting%, Net rating, and Plus-Minus (all of which are differential statistics between two teams). All of these metrics are somewhat similar in the sense that they describe a teams' offensive capabilities and their ability to score (Net rating describes both offensive and defensive skill). The Simple Rating System (SRS) metric is an advanced statistic that measures a teams' overall strength by combining their average point differential (Plus-Minus), with their Strength of Schedule (a metric that takes into account the average rating of each opponent faced). As shown by the plot, the Plus-Minus and SRS differential characteristics posses very similar pearson correlation values, indicating that the Strength of Schedule metric, adds little predictive power to a playoff series outcome.
+
+### Chosen Machine Learning Models
+
+To transition from exploratory correlation analysis to predictive modeling, we selected two distinct classification frameworks capable of handling continuous, differential team statistics to predict binary series outcomes ($Y \in \{0, 1\}$, where 1 represents a series win for Team A).
+
+#### Elastic Net Logistic Regression
+
+Logistic regression is a foundational classification algorithm that models the probability of a binary outcome using the logistic function:
+
+$$
+\begin{aligned}
+P(Y=1|X)=\frac{1}{1+e^{-(\beta_0+\beta_1X_1+...+\beta_pX_p)}}
+\end{aligned}
+$$ Because many of our engineered feature differentials (such as Effective Field Goal Percentage, True Shooting Percentage, and Net Rating) exhibit strong multicollinearity, a standard ordinary least squares or unpenalized logistic approach would suffer from high variance and unstable coefficient estimates. To mitigate this, we utilized Elastic Net Regularization, which linearly combines the penalties of both Ridge ($L_2$) and Lasso ($L_1$) regression. The objective function minimizes:
+
+$$
+\begin{aligned}
+\min_{\beta_0, \beta} \left[ -\frac{1}{N} \sum_{i=1}^N y_i \cdot \log(p_i) + (1-y_i) \cdot \log(1-p_i) \right] + \lambda \left( \frac{1-\alpha}{2} \|\beta\|_2^2 + \alpha \|\beta\|_1 \right)
+\end{aligned}
+$$
+
+-   The Lasso Penalty ($\alpha = 1$): Performs automatic feature selection by driving less impactful coefficients exactly to zero, which helps eliminate redundant metrics.
+
+-   The Ridge Penalty ($\alpha = 0$): Handles highly correlated predictors by shrinking their coefficients toward each other, ensuring stable weights for overlapping efficiency metrics.By tuning the blending hyperparameter ($\alpha$) and the regularization penalty strength ($\lambda$) via cross-validation, the model parsimoniously selects the most critical regular-season success indicators while penalizing over-complexity.
+
+#### Random Forest
+
+While logistic regression assumes a linear relationship between the log-odds of winning and the team differentials, postseason basketball often features non-linear thresholds where marginal advantages scale unpredictably. To capture these interactions, we implemented a Random Forest Classifier, an ensemble learning method constructed from a multitude of independent decision trees.
+
+The algorithm operates on the principle of bootstrap aggregation (bagging) and feature randomness:
+
+1.  Resampling: Multiple bootstrap samples are drawn from the historical training data.
+
+2.  Tree Construction: A deep decision tree is grown for each sample. At each node split, the algorithm only considers a random subset of the engineered predictors (determined by the mtry hyperparameter), preventing dominant features like raw Win Percentage from masking subtle, complex interactions between shooting efficiency and rebounding metrics.
+
+3.  Ensemble Voting: The final prediction is determined by a majority vote across all constructed trees, which drastically reduces model variance and protects against overfitting.
+
+This non-parametric approach naturally handles multi-collinear inputs and is ideally suited for discovering complex, conditional relationships—such as how an offensive rebounding advantage might only become predictive when a team's true shooting differential is negative.
 
 ## Results
 
@@ -76,7 +120,7 @@ model_compare %>%
 
 ### Feature Importance
 
-![](logreg_imp_top10.png) 
+![](logreg_imp_top10.png)
 
 As shown by the plot, the logistic regression model selected only eight of the predictors included in the recipe. Among the top five of those include: Win%, True-shooting%, Effective Field-Goal%, and Offensive/Net rating (all of which are differentials between Team A and Team B). This means that the model prioritizes teams with high regular season win/loss records (to be expected), as well as efficient shooting, more so than it does defensive metrics. These results highlight the distinct shift the NBA has taken in the modern era, putting a heavy importance on a teams' ability to score rather than defend. Interestingly enough, the model also selected the head-to-head Win% differential statistic, implying that a teams' regular season win/loss record against a specific team yields predictive power in the outcome of a series matchup in the playoffs.
 
@@ -131,7 +175,6 @@ rf_finals_predictions %>%
   )
 
 ```
-
 
 ## Conclusion
 
